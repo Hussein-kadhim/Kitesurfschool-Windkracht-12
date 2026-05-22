@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #005B96;
+  --color-secondary: #F4A460;
+  --color-tertiary: #FF5F1F;
+  --color-neutral: #F5F5F0;
+  
+  --font-montserrat: 'Montserrat', sans-serif;
+  --font-lexend: 'Lexend', sans-serif;
+}
+
+body {
+    @apply bg-neutral font-lexend;
+}
