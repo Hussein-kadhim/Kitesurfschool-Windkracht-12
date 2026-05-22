@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const Home = ({ user, error }) => {
   if (error) {
     return (
-      <div className="min-h-screen bg-neutral flex items-center justify-center p-6">
+      <div className="min-h-screen bg-cream flex items-center justify-center p-6">
         <div className="bg-white border-t-4 border-red-500 shadow-lg p-8 max-w-lg w-full text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="fa-solid fa-server text-red-500 text-3xl"></i>
@@ -23,7 +23,7 @@ const Home = ({ user, error }) => {
   }
 
   return (
-    <div className="min-h-screen bg-neutral pb-16">
+    <div className="min-h-screen bg-cream pb-16">
       {/* Messages */}
       {user && <p className='text-primary text-center py-2 bg-blue-100 font-bold'>Welkom terug, {user.name}!</p>}
 

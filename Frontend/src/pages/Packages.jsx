@@ -23,12 +23,12 @@ const Packages = () => {
   }, []);
 
   if (loading) {
-    return <div className="min-h-screen bg-neutral flex justify-center items-center">Laden...</div>;
+    return <div className="min-h-screen bg-cream flex justify-center items-center">Laden...</div>;
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-neutral flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-6">
         <div className="bg-white border-t-4 border-red-500 shadow-sm p-8 max-w-md w-full text-center">
           <h2 className="text-xl font-bold font-montserrat text-gray-900 mb-4">Fout bij laden</h2>
           <p className="text-gray-600 mb-6">Geen pakketten gevonden.</p>
@@ -44,7 +44,7 @@ const Packages = () => {
   }
 
   return (
-    <div className="min-h-screen bg-neutral pb-24">
+    <div className="min-h-screen bg-cream pb-24">
       <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="mb-12 border-l-4 border-gray-900 pl-4">
           <h1 className="text-4xl font-bold font-montserrat text-gray-900 mb-4">Onze Lespakketten</h1>
