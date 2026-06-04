@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import packages from '../data/packages.json';
 
 const Home = ({ user, error }) => {
   if (error) {
@@ -89,59 +90,47 @@ const Home = ({ user, error }) => {
         <div className="w-full h-px bg-gray-300 mb-10"></div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Card 1 */}
-          <div className="bg-white border-2 border-gray-200 p-6 flex flex-col justify-between hover:shadow-lg transition">
-            <div>
-              <h3 className="text-xl font-bold font-montserrat mb-6">Privéles</h3>
-              <ul className="space-y-2 text-sm text-gray-700 font-medium mb-8">
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Prijs:</span> <span>€120</span></li>
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Duur:</span> <span>2 Uur</span></li>
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Deelnemers:</span> <span>1</span></li>
-              </ul>
+          {packages.map((pkg) => (
+            <div
+              key={pkg.id}
+              className={`bg-white p-6 flex flex-col justify-between hover:shadow-lg transition relative ${
+                pkg.isPopular
+                  ? 'border-2 border-gray-900 shadow-md'
+                  : 'border-2 border-gray-200'
+              }`}
+            >
+              {pkg.isPopular && (
+                <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">
+                  Meest Gekozen
+                </div>
+              )}
+              <div>
+                <h3 className="text-xl font-bold font-montserrat mb-6">{pkg.name}</h3>
+                <ul className="space-y-2 text-sm text-gray-700 font-medium mb-8">
+                  <li className="flex justify-between border-b border-gray-100 pb-2">
+                    <span>Prijs:</span>
+                    <span>€{pkg.price} {pkg.priceSuffix}</span>
+                  </li>
+                  {pkg.features.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 border-b border-gray-100 pb-2">
+                      <i className="fa-solid fa-check text-gray-500 text-xs"></i>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <Link
+                to="/pakketten"
+                className={`w-full block text-center font-bold py-2 uppercase text-sm transition border-2 ${
+                  pkg.isPopular
+                    ? 'bg-black text-white border-black hover:bg-gray-800'
+                    : 'bg-transparent border-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                Kies
+              </Link>
             </div>
-            <button className="w-full bg-transparent border-2 border-gray-900 font-bold py-2 hover:bg-gray-100 transition uppercase text-sm">Kies</button>
-          </div>
-
-          {/* Card 2 */}
-          <div className="bg-white border-2 border-gray-200 p-6 flex flex-col justify-between hover:shadow-lg transition">
-            <div>
-              <h3 className="text-xl font-bold font-montserrat mb-6">Duo Les</h3>
-              <ul className="space-y-2 text-sm text-gray-700 font-medium mb-8">
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Prijs:</span> <span>€85 p.p.</span></li>
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Duur:</span> <span>3 Uur</span></li>
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Deelnemers:</span> <span>2</span></li>
-              </ul>
-            </div>
-            <button className="w-full bg-transparent border-2 border-gray-900 font-bold py-2 hover:bg-gray-100 transition uppercase text-sm">Kies</button>
-          </div>
-
-          {/* Card 3  */}
- <div className="bg-white border-2 border-gray-900 p-6 flex flex-col justify-between hover:shadow-lg transition relative shadow-md">
-            <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">Meest Gekozen</div>
-            <div>            <div>
-              <h3 className="text-xl font-bold font-montserrat mb-6">Groepsles</h3>
-              <ul className="space-y-2 text-sm text-gray-700 font-medium mb-8">
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Prijs:</span> <span>€110 p.p.</span></li>
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Duur:</span> <span>4 Uur</span></li>
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Deelnemers:</span> <span>3-4</span></li>
-              </ul>
-            </div>
-            </div>
-            <button className="w-full bg-black text-white font-bold py-2 hover:bg-gray-800 transition uppercase text-sm border-2 border-black">Kies</button>
-          </div>
-           
-          {/* Card 4 */}
-          <div className="bg-white border-2 border-gray-200 p-6 flex flex-col justify-between hover:shadow-lg transition">
-            <div>
-              <h3 className="text-xl font-bold font-montserrat mb-6">5-Daagse Cursus</h3>
-              <ul className="space-y-2 text-sm text-gray-700 font-medium mb-8">
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Prijs:</span> <span>€399 p.p.</span></li>
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Duur:</span> <span>5× 3 Uur</span></li>
-                <li className="flex justify-between border-b border-gray-100 pb-2"><span>Deelnemers:</span> <span>Max 4</span></li>
-              </ul>
-            </div>
-            <button className="w-full bg-transparent border-2 border-gray-900 font-bold py-2 hover:bg-gray-100 transition uppercase text-sm">Kies</button>
-          </div>
+          ))}
         </div>
       </section>
 

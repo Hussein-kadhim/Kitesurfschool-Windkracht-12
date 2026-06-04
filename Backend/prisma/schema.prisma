@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  name         String?
+  email        String        @unique
+  password     String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+  role         String        @default("user")
+  reservations Reservation[]
+
+  @@map("users")
+}
+
+model Reservation {
+  id          Int        @id @default(autoincrement())
+  userId      Int        @map("user_id")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @default(now()) @updatedAt
+  lesson      LessonType
+  bookingDate DateTime   @default(now()) @map("booking_date")
+  price       Float
+  user        User       @relation(fields: [userId], references: [id])
+
+  @@map("reservations")
+}
+
+enum LessonType {
+  PRIVE_LES
+  DUO_LES
+  GROEPSLES
+  GROEPSLES_5_LESSEN
+}

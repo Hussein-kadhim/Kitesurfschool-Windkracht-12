@@ -1,0 +1,58 @@
+[
+  {
+    "id": 1,
+    "name": "Privéles",
+    "value": "PRIVE_LES",
+    "price": 120,
+    "priceSuffix": "/ 2 uur",
+    "description": "1-op-1 begeleiding voor maximale progressie. Ideaal voor absolute beginners of als je specifieke tricks wilt leren.",
+    "features": [
+      "1 instructeur, 1 cursist",
+      "Inclusief alle gear",
+      "Video analyse (optioneel)"
+    ],
+    "isPopular": false
+  },
+  {
+    "id": 2,
+    "name": "Duo Les",
+    "value": "DUO_LES",
+    "price": 85,
+    "priceSuffix": "p.p. / 3 uur",
+    "description": "Samen leren kiten met een vriend of partner. Je deelt een kite en leert van elkaars fouten.",
+    "features": [
+      "1 instructeur, 2 cursisten",
+      "Gedeelde kite setup",
+      "Ideaal voor koppels"
+    ],
+    "isPopular": false
+  },
+  {
+    "id": 3,
+    "name": "Groepsles",
+    "value": "GROEPSLES",
+    "price": 110,
+    "priceSuffix": "p.p. / 3.5 uur",
+    "description": "De meest gekozen lesvorm. Gezellig leren in een klein groepje met een toegankelijke prijs.",
+    "features": [
+      "Max 3 cursisten per instructeur",
+      "Focus op de basis",
+      "Veel theorie in praktijk"
+    ],
+    "isPopular": true
+  },
+  {
+    "id": 4,
+    "name": "5-Daagse Cursus",
+    "value": "GROEPSLES_5_LESSEN",
+    "price": 399,
+    "priceSuffix": "/ 15 uur",
+    "description": "Van nul naar onafhankelijk kiter in één week. Een compleet traject inclusief IKO certificering.",
+    "features": [
+      "5 lessen van 3 uur",
+      "Gegarandeerd meters maken",
+      "Inclusief IKO pasje"
+    ],
+    "isPopular": false
+  }
+]

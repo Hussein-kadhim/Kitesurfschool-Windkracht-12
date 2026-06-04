@@ -10,7 +10,9 @@ import ResetPassword from "./pages/ResetPassword"
 import Packages from "./pages/Packages"
 import NotFound from "./components/NotFound"
 import Footer from "./components/Footer"
-
+import Reservation from "./pages/Reservation"
+import Success from "./pages/Success"
+    
 axios.defaults.withCredentials = true
 
 function App() {
@@ -56,6 +58,8 @@ useEffect(() => {
       <Route path="/forgot-password" element={user ? <Navigate to="/" /> : <ForgotPassword />} />
       <Route path="/reset-password" element={user ? <Navigate to="/" /> : <ResetPassword />} />
       <Route path="/pakketten" element={<Packages />} />
+      <Route path="/reservering/:id" element={user ? <Reservation user={user}/> : <Navigate to="/login" />} />
+      <Route path="/success" element={user ? <Success /> : <Navigate to="/login" />} />
       <Route path="*" element={<NotFound />}/>
       </Routes>
       <Footer />
