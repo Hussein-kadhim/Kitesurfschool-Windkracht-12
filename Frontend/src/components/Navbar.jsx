@@ -13,6 +13,10 @@ const Navbar = ({user, setUser}) => {
   };
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [logoutError, setLogoutError] = useState("");
+  const [adminDropdown, setAdminDropdown] = useState(false);
+  const [instructeurDropdown, setInstructeurDropdown] = useState(false);
+  const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
+  const [mobileInstructeurOpen, setMobileInstructeurOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -26,6 +30,33 @@ const Navbar = ({user, setUser}) => {
       setLogoutError("Je kan niet uitloggen door een foutmelding. Je blijft mogelijk ingelogd. Sluit handmatig de browser.");
     }
   };
+
+  React.useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMenuOpen]);
+
+  // Click outside handling for dropdowns
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.admin-dropdown-container')) {
+        setAdminDropdown(false);
+      }
+      if (!event.target.closest('.instructeur-dropdown-container')) {
+        setInstructeurDropdown(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="relative">
@@ -55,15 +86,50 @@ const Navbar = ({user, setUser}) => {
         {/* Center: Navigation Links (Desktop) */}
         <div className='hidden lg:flex justify-center space-x-6 text-gray-600 font-medium'>
             <Link to="/" className={getLinkClass('/')}>Home</Link>
-            <Link to="#" className={getLinkClass('/planning')}>Planning</Link>
-            {(!user || user.role === 'klant' || user.role === 'eigenaar') && (
+            <Link to="/planning" className={getLinkClass('/planning')}>Planning</Link>
+            {(!user || user.role === 'klant') && (
               <Link to="/pakketten" className={getLinkClass('/pakketten')}>Reserveren</Link>
             )}
             {user?.role === 'eigenaar' && (
-              <Link to="#" className='hover:text-primary flex items-center'>Admin <i className="fa-solid fa-chevron-down ml-1 text-xs"></i></Link>
+              <div className="relative admin-dropdown-container">
+                <button
+                  className={`hover:text-primary flex items-center ${adminDropdown ? 'text-gray-900 font-bold' : ''}`}
+                  onClick={() => {
+                    setAdminDropdown(!adminDropdown);
+                    setInstructeurDropdown(false);
+                  }}
+                >
+                  Admin <i className={`fa-solid fa-chevron-down ml-1 text-[10px] transition-transform ${adminDropdown ? 'rotate-180' : ''}`}></i>
+                </button>
+                {adminDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-gray-200 shadow-lg py-2 z-50">
+                    <Link to="#" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Gebruikersbeheer</Link>
+                    <Link to="#" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Betalingen</Link>
+                    <Link to="#" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Alle Reserveringen</Link>
+                    <Link to="#" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Statistieken</Link>
+                  </div>
+                )}
+              </div>
             )}
             {(user?.role === 'eigenaar' || user?.role === 'instructeur') && (
-              <Link to="#" className='hover:text-primary flex items-center'>Instructeur <i className="fa-solid fa-chevron-down ml-1 text-xs"></i></Link>
+              <div className="relative instructeur-dropdown-container">
+                <button
+                  className={`hover:text-primary flex items-center ${instructeurDropdown ? 'text-gray-900 font-bold' : ''}`}
+                  onClick={() => {
+                    setInstructeurDropdown(!instructeurDropdown);
+                    setAdminDropdown(false);
+                  }}
+                >
+                  Instructeur <i className={`fa-solid fa-chevron-down ml-1 text-[10px] transition-transform ${instructeurDropdown ? 'rotate-180' : ''}`}></i>
+                </button>
+                {instructeurDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-gray-200 shadow-lg py-2 z-50">
+                    <Link to="#" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Lessen</Link>
+                    <Link to="#" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Klanten</Link>
+                    <Link to="#" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Les Annuleren</Link>
+                  </div>
+                )}
+              </div>
             )}
         </div>
         
@@ -71,13 +137,11 @@ const Navbar = ({user, setUser}) => {
         <div className='flex items-center justify-end space-x-4 lg:space-x-6 text-gray-600 font-medium'>
           {user ? (
             <>
-              {(user.role === 'eigenaar' || user.role === 'instructeur') && (
-                <Link to="#" className='hidden lg:block hover:text-primary'>Dashboard</Link>
-              )}
-              <Link to="#" className='hidden lg:block hover:text-primary'>Profiel</Link>
+              <Link to="/dashboard" className='hidden lg:block hover:text-primary'>Dashboard</Link>
+              <Link to="/profile" className='hidden lg:block hover:text-primary'>Profiel</Link>
               
-              {/* Uitloggen is zichtbaar buiten het hamburger menu */}
-              <button className='bg-black text-white px-3 py-2 lg:px-4 text-[10px] lg:text-xs font-bold uppercase tracking-wide hover:bg-gray-800 transition' onClick={handleLogout}>
+              {/* Uitloggen is zichtbaar buiten het hamburger menu, alleen op desktop */}
+              <button className='hidden lg:block bg-black text-white px-3 py-2 lg:px-4 text-[10px] lg:text-xs font-bold uppercase tracking-wide hover:bg-gray-800 transition' onClick={handleLogout}>
                 Uitloggen
               </button>
             </>
@@ -95,39 +159,146 @@ const Navbar = ({user, setUser}) => {
         </div>
       </nav>
 
-      {/* Mobile Menu Dropdown */}
-      {isMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-gray-200 shadow-md z-30 flex flex-col p-6 space-y-4 text-gray-800 font-medium">
-            <Link to="/" className={getLinkClass('/')} onClick={() => setIsMenuOpen(false)}>Home</Link>
-            <Link to="#" className={getLinkClass('/planning')} onClick={() => setIsMenuOpen(false)}>Planning</Link>
-            {(!user || user.role === 'klant' || user.role === 'eigenaar') && (
-              <Link to="/pakketten" className={getLinkClass('/pakketten')} onClick={() => setIsMenuOpen(false)}>Reserveren</Link>
-            )}
-            {user?.role === 'eigenaar' && (
-              <Link to="#" className='hover:text-primary flex items-center' onClick={() => setIsMenuOpen(false)}>Admin</Link>
-            )}
-            {(user?.role === 'eigenaar' || user?.role === 'instructeur') && (
-              <Link to="#" className='hover:text-primary flex items-center' onClick={() => setIsMenuOpen(false)}>Instructeur</Link>
-            )}
-            
-            {/* User Links on Mobile (Dashboard, Profiel, Login, Registreer) */}
-            {user ? (
-                <>
-                  <div className="border-t border-gray-200 my-2"></div>
-                  {(user.role === 'eigenaar' || user.role === 'instructeur') && (
-                      <Link to="#" className='hover:text-primary' onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
-                  )}
-                  <Link to="#" className='hover:text-primary' onClick={() => setIsMenuOpen(false)}>Profiel</Link>
-                </>
-            ) : (
-                <>
-                  <div className="border-t border-gray-200 my-2"></div>
-                  <Link to="/login" className='hover:text-primary' onClick={() => setIsMenuOpen(false)}>Login</Link>
-                  <Link to="/register" className='hover:text-primary text-primary' onClick={() => setIsMenuOpen(false)}>Registreer</Link>
-                </>
-            )}
+      {/* Mobile Menu Backdrop */}
+      <div 
+        className={`lg:hidden fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ${
+          isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMenuOpen(false)}
+      />
+
+      {/* Mobile Menu Drawer (Right to Left) */}
+      <div 
+        className={`lg:hidden fixed top-0 right-0 bottom-0 w-64 bg-white z-50 shadow-lg overflow-y-auto transition-transform duration-300 ease-in-out ${
+          isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        {/* Drawer Header */}
+        <div className="flex justify-end p-4 border-b border-gray-100">
+          <button 
+            className="text-gray-500 hover:text-gray-900 text-2xl focus:outline-none" 
+            onClick={() => setIsMenuOpen(false)}
+          >
+            <i className="fa-solid fa-xmark"></i>
+          </button>
         </div>
-      )}
+
+        {/* Drawer Links */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 text-gray-800 font-medium">
+          <Link 
+            to="/" 
+            className="block py-2 hover:text-primary transition"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Home
+          </Link>
+
+          <Link 
+            to="/planning" 
+            className="block py-2 hover:text-primary transition"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Planning
+          </Link>
+
+          {(!user || user.role === 'klant') && (
+            <Link 
+              to="/pakketten" 
+              className="block py-2 hover:text-primary transition"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Reserveren
+            </Link>
+          )}
+
+          {user?.role === 'eigenaar' && (
+            <div>
+              <button
+                className="flex items-center justify-between w-full py-2 hover:text-primary transition"
+                onClick={() => setMobileAdminOpen(!mobileAdminOpen)}
+              >
+                Admin
+                <i className={`fa-solid fa-chevron-down text-xs transition-transform ${mobileAdminOpen ? 'rotate-180' : ''}`}></i>
+              </button>
+              {mobileAdminOpen && (
+                <div className="pl-4 border-l-2 border-gray-100 space-y-2 pb-2">
+                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Gebruikersbeheer</Link>
+                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Betalingen</Link>
+                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Alle Reserveringen</Link>
+                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Statistieken</Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(user?.role === 'eigenaar' || user?.role === 'instructeur') && (
+            <div>
+              <button
+                className="flex items-center justify-between w-full py-2 hover:text-primary transition"
+                onClick={() => setMobileInstructeurOpen(!mobileInstructeurOpen)}
+              >
+                Instructeur
+                <i className={`fa-solid fa-chevron-down text-xs transition-transform ${mobileInstructeurOpen ? 'rotate-180' : ''}`}></i>
+              </button>
+              {mobileInstructeurOpen && (
+                <div className="pl-4 border-l-2 border-gray-100 space-y-2 pb-2">
+                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Lessen</Link>
+                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Klanten</Link>
+                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Les Annuleren</Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* User Section */}
+          <div className="pt-4 border-t border-gray-100 space-y-4">
+            {user ? (
+              <>
+                <Link 
+                  to="/dashboard" 
+                  className="block py-2 hover:text-primary transition"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                
+                <Link 
+                  to="/profile" 
+                  className="block py-2 hover:text-primary transition"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Profiel
+                </Link>
+                
+                <button 
+                  className="block w-full text-left py-2 text-red-600 hover:text-red-700 transition"
+                  onClick={handleLogout}
+                >
+                  Uitloggen
+                </button>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/login" 
+                  className="block py-2 hover:text-primary transition"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                
+                <Link 
+                  to="/register" 
+                  className="block py-2 text-primary font-bold transition"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Registreer
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

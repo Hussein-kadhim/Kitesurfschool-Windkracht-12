@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              Int           @id @default(autoincrement())
+  name            String?
+  email           String        @unique
+  password        String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now()) @updatedAt
+  role            String        @default("user")
+  address         String?
+  city            String?
+  dateOfBirth     DateTime?
+  phone           String?
+  bsn             String?
+  
+  reservations    Reservation[] @relation("ClientReservations")
+  assignedLessons Reservation[] @relation("InstructorReservations")
+
+  @@map("users")
+}
+
+model Reservation {
+  id             Int        @id @default(autoincrement())
+  userId         Int        @map("user_id")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @default(now()) @updatedAt
+  lesson         LessonType
+  bookingDate    DateTime   @default(now()) @map("booking_date")
+  price          Float
+  
+  status         String     @default("VOORLOPIG")
+  location       String?
+  duoName        String?
+  duoAddress     String?
+  duoCity        String?
+  duoPhone       String?
+  hasPaid        Boolean    @default(false)
+  cancelReason   String?
+  cancelApproved Boolean    @default(false)
+  
+  instructorId   Int?       @map("instructor_id")
+
+  user           User       @relation("ClientReservations", fields: [userId], references: [id])
+  instructor     User?      @relation("InstructorReservations", fields: [instructorId], references: [id])
+
+  @@map("reservations")
+}
+
+enum LessonType {
+  PRIVE_LES
+  DUO_LES
+  GROEPSLES
+  GROEPSLES_5_LESSEN
+}

@@ -4,12 +4,102 @@
   --color-primary: #005B96;
   --color-secondary: #F4A460;
   --color-tertiary: #FF5F1F;
-  --color-neutral: #F5F5F0;
-  
-  --font-montserrat: 'Montserrat', sans-serif;
-  --font-lexend: 'Lexend', sans-serif;
+  --color-cream: #F5F5F0;
+
+  --font-family-montserrat: 'Montserrat', sans-serif;
+  --font-family-lexend: 'Lexend', sans-serif;
 }
 
 body {
-    @apply bg-neutral font-lexend;
+  background-color: #F5F5F0;
+  font-family: 'Lexend', sans-serif;
 }
+
+/* ── react-calendar overrides ─────────────────────────── */
+.reservation-calendar .react-calendar {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: 'Lexend', sans-serif;
+}
+
+.reservation-calendar .react-calendar__navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.reservation-calendar .react-calendar__navigation button {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  transition: background 0.15s;
+}
+
+.reservation-calendar .react-calendar__navigation button:hover:not(:disabled) {
+  background-color: #f3f4f6;
+}
+
+.reservation-calendar .react-calendar__navigation__label {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #111827;
+  pointer-events: none;
+}
+
+.reservation-calendar .react-calendar__month-view__weekdays {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.reservation-calendar .react-calendar__month-view__weekdays abbr {
+  text-decoration: none;
+}
+
+.reservation-calendar .react-calendar__tile {
+  background: none;
+  border: none;
+  padding: 0.55rem 0.25rem;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 0;
+}
+
+.reservation-calendar .react-calendar__tile:hover:not(:disabled) {
+  background-color: #f3f4f6;
+}
+
+.reservation-calendar .react-calendar__tile--now {
+  background: none;
+  font-weight: 700;
+  color: #111827;
+}
+
+.reservation-calendar .react-calendar__tile--active,
+.reservation-calendar .react-calendar__tile--active:hover {
+  background-color: #111827 !important;
+  color: #ffffff !important;
+}
+
+.reservation-calendar .react-calendar__tile:disabled {
+  color: #d1d5db;
+  cursor: default;
+  background: none;
+}
+
+.reservation-calendar .react-calendar__month-view__days__day--neighboringMonth {
+  color: #d1d5db;
+}
+
