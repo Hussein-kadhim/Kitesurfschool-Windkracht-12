@@ -36,7 +36,11 @@ const handleSubmit = async (e) => {
     setUser(res.data.user);
     navigate('/');
   } catch (err) {
-    setError("Fout bij inloggen wachtwoord of email klopt niet");
+    if (!err.response || err.response.status >= 500) {
+      setError("Kan momenteel geen verbinding maken met de server. Probeer het later opnieuw.");
+    } else {
+      setError("Fout bij inloggen: wachtwoord of e-mailadres klopt niet.");
+    }
   }
 };
   return (

@@ -15,13 +15,15 @@ const TIJDSLOTEN = [
   { tijd: '18:30 - 21:00', status: 'volgeboekt' },
 ];
 
-const Reservation = ({ user }) => {
+const Reservation = ({ user, globalError }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const pkg = packages.find(p => p.id === parseInt(id));
 
   const [geselecteerdeDatum, setGeselecteerdeDatum] = useState(new Date());
   const [geselecteerdeTijd, setGeselecteerdeTijd] = useState(null);
+  const [error, setError] = useState(globalError || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!pkg) {
     return (
@@ -44,15 +46,23 @@ const Reservation = ({ user }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!geselecteerdeTijd) {
+      setError("Selecteer eerst een tijdslot.");
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
+      setError("");
       const res = await fetch('/api/reservations', {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           lesson: pkg.value,
-          userId: user.id,
+          userId: user?.id,
           price: pkg.price,
           bookingDate: geselecteerdeDatum.toISOString(),
         }),
@@ -66,9 +76,14 @@ const Reservation = ({ user }) => {
             price: pkg.price
           }
         });
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setError(errorData.message || "Er is wat mis gegaan. De server is onbereikbaar.");
       }
     } catch (err) {
-      // Console log removed
+      setError("Er is wat mis gegaan. Kan geen verbinding maken met de server.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -86,7 +101,7 @@ const Reservation = ({ user }) => {
           <div className="flex-1 flex flex-col gap-6">
 
             {/* Kalender via react-calendar */}
-            <div className="bg-white border-2 border-gray-200 p-6 reservation-calendar">
+            <div className={`bg-white border-2 border-gray-200 p-6 reservation-calendar ${error ? 'pointer-events-none opacity-50' : ''}`}>
               <Calendar
                 onChange={setGeselecteerdeDatum}
                 value={geselecteerdeDatum}
@@ -99,14 +114,14 @@ const Reservation = ({ user }) => {
 
             {/* Tijdsloten */}
             {geselecteerdeDatum && (
-              <div className="bg-white border-2 border-gray-200 p-6">
+              <div className={`bg-white border-2 border-gray-200 p-6 ${error ? 'pointer-events-none opacity-50' : ''}`}>
                 <div className="flex items-center justify-between mb-5">
                   <span className="font-bold text-gray-900">{formatDatumKort()}</span>
                   <i className="fa-regular fa-sun text-gray-400"></i>
                 </div>
                 <div className="flex flex-col gap-3">
                   {TIJDSLOTEN.map((slot, i) => {
-                    const isVol = slot.status === 'volgeboekt';
+                    const isVol = slot.status === 'volgeboekt' || !!error;
                     const isSel = geselecteerdeTijd === slot.tijd;
                     return (
                       <button
@@ -164,12 +179,18 @@ const Reservation = ({ user }) => {
                 <span className="text-sm text-gray-600">Totaal</span>
                 <span className="text-xl font-bold font-montserrat text-gray-900">€{pkg.price}</span>
               </div>
+              {error && (
+                <div className="text-red-500 text-xs font-bold border border-red-200 bg-red-50 p-3 rounded">
+                  <i className="fa-solid fa-circle-exclamation mr-2"></i>
+                  {error}
+                </div>
+              )}
               <form action="" method="post" onSubmit={handleSubmit}>
               <button
-                disabled={!geselecteerdeDatum || !geselecteerdeTijd}
+                disabled={!geselecteerdeDatum || !geselecteerdeTijd || isSubmitting || !!error}
                 className="w-full bg-gray-900 text-white py-3 font-bold uppercase tracking-wide text-sm hover:bg-black transition disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                Volgende Stap
+                {isSubmitting ? "Bezig met reserveren..." : "Volgende Stap"}
               </button>
               </form>
               <button
