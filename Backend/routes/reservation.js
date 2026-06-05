@@ -7,10 +7,16 @@ import { deleteReservation } from "../controllers/reservation/delete.js";
 
 const router = express.Router();
 
-// Reservations
+// Alle reserveringen ophalen
 router.get("/", protect, getAllReservations);
+
+// Nieuwe reservering maken
 router.post("/", protect, createReservation);
+
+// Reservering bijwerken
 router.put("/:id", protect, updateReservation);
+
+// Reservering verwijderen
 router.delete("/:id", protect, deleteReservation);
 
 export default router;

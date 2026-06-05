@@ -1,20 +1,15 @@
 import { prisma } from "../../lib/prisma.js";
 
 export const getAllReservations = async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ message: "Je moet ingelogd zijn om reserveringen in te zien" });
+    }
+
     try {
         const reservations = await prisma.reservation.findMany({
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        role: true
-                    }
-                }
-            },
+            where: { userId: req.user.id },
             orderBy: {
-                bookingDate: "desc"
+                bookingDate: "asc"
             }
         });
         res.json(reservations);
