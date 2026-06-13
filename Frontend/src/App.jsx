@@ -85,7 +85,7 @@ function App() {
     <Route path="/success" element={user ? <Success /> : <Navigate to="/login" />} />
     <Route path="/profile" element={user ? <Profile user={user} setUser={updateUser} /> : <Navigate to="/login" />} />
     <Route path="/planning" element={<Planning />} />
-    <Route path="/dashboard" element={user ? <Dashboard user={user} setUser={updateUser} /> : <Navigate to="/login" />} />
+    <Route path="/dashboard" element={user?.role === 'klant' ? <Dashboard user={user} setUser={updateUser} /> : <Navigate to={user ? "/" : "/login"} />} />
     <Route path="*" element={<NotFound />}/>
    </Routes>
    <Footer />

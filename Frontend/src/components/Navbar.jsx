@@ -137,7 +137,9 @@ const Navbar = ({user, setUser}) => {
         <div className='flex items-center justify-end space-x-4 lg:space-x-6 text-gray-600 font-medium'>
           {user ? (
             <>
-              <Link to="/dashboard" className='hidden lg:block hover:text-primary'>Dashboard</Link>
+              {user.role === 'klant' && (
+                <Link to="/dashboard" className='hidden lg:block hover:text-primary'>Dashboard</Link>
+              )}
               <Link to="/profile" className='hidden lg:block hover:text-primary'>Profiel</Link>
               
               {/* Uitloggen is zichtbaar buiten het hamburger menu, alleen op desktop */}
@@ -254,13 +256,15 @@ const Navbar = ({user, setUser}) => {
           <div className="pt-4 border-t border-gray-100 space-y-4">
             {user ? (
               <>
-                <Link 
-                  to="/dashboard" 
-                  className="block py-2 hover:text-primary transition"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
+                {user.role === 'klant' && (
+                  <Link 
+                    to="/dashboard" 
+                    className="block py-2 hover:text-primary transition"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                )}
                 
                 <Link 
                   to="/profile" 
