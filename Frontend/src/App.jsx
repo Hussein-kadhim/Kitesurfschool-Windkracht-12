@@ -12,6 +12,7 @@ import NotFound from "./components/NotFound"
 import Footer from "./components/Footer"
 import Reservation from "./pages/Reservation"
 import Success from "./pages/Success"
+import Locations from "./pages/Locations"
     
 import Profile from "./pages/Profile"
 import Planning from "./pages/Planning"
@@ -81,6 +82,7 @@ function App() {
     <Route path="/forgot-password" element={user ? <Navigate to="/" /> : <ForgotPassword />} />
     <Route path="/reset-password" element={user ? <Navigate to="/" /> : <ResetPassword />} />
     <Route path="/pakketten" element={<Packages />} />
+    <Route path="/locaties" element={<Locations />} />
     <Route path="/reservering/:id" element={(user || error || loading) ? <Reservation user={user} globalError={error} /> : <Navigate to="/login" />} />
     <Route path="/success" element={user ? <Success /> : <Navigate to="/login" />} />
     <Route path="/profile" element={user ? <Profile user={user} setUser={updateUser} /> : <Navigate to="/login" />} />
