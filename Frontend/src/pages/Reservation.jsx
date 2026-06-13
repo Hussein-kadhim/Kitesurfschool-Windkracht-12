@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -22,6 +22,16 @@ const Reservation = ({ user, globalError }) => {
 
   const [geselecteerdeDatum, setGeselecteerdeDatum] = useState(new Date());
   const [geselecteerdeTijd, setGeselecteerdeTijd] = useState(null);
+  
+  const LOCATIES = [
+    "Zandvoort",
+    "IJmuiden",
+    "Wijk aan Zee",
+    "Scheveningen",
+    "Hoek van Holland"
+  ];
+  
+  const [geselecteerdeLocatie, setGeselecteerdeLocatie] = useState("");
   const [error, setError] = useState(globalError || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -112,6 +122,29 @@ const Reservation = ({ user, globalError }) => {
               />
             </div>
 
+            {/* Locatie Dropdown */}
+            <div className={`bg-white border-2 border-gray-200 p-6 ${error ? 'pointer-events-none opacity-50' : ''}`}>
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-bold text-gray-900">Kies een Locatie</span>
+                <i className="fa-solid fa-location-dot text-gray-400"></i>
+              </div>
+              <div className="relative">
+                <select 
+                  className="w-full appearance-none border-2 border-gray-200 p-3 bg-gray-50 text-gray-900 font-bold focus:border-black focus:bg-white focus:outline-none transition cursor-pointer hover:border-gray-300"
+                  value={geselecteerdeLocatie}
+                  onChange={(e) => setGeselecteerdeLocatie(e.target.value)}
+                >
+                  <option value="" disabled className="font-normal text-gray-500">Selecteer een locatie...</option>
+                  {LOCATIES.map((loc, idx) => (
+                    <option key={idx} value={loc} className="font-bold">{loc}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+                  <i className="fa-solid fa-chevron-down text-sm"></i>
+                </div>
+              </div>
+            </div>
+
             {/* Tijdsloten */}
             {geselecteerdeDatum && (
               <div className={`bg-white border-2 border-gray-200 p-6 ${error ? 'pointer-events-none opacity-50' : ''}`}>
@@ -167,11 +200,12 @@ const Reservation = ({ user, globalError }) => {
                 <p className="text-sm text-gray-500">{pkg.priceSuffix}</p>
               </div>
 
-              {geselecteerdeDatum && geselecteerdeTijd && (
+              {geselecteerdeDatum && geselecteerdeTijd && geselecteerdeLocatie && (
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Datum &amp; Tijd</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Datum, Tijd &amp; Locatie</p>
                   <p className="font-bold text-gray-900 text-sm">{formatDatumLang()}</p>
                   <p className="text-sm text-gray-500">{geselecteerdeTijd}</p>
+                  <p className="text-sm text-gray-500 mt-1"><i className="fa-solid fa-location-dot mr-1"></i>{geselecteerdeLocatie}</p>
                 </div>
               )}
 
@@ -187,7 +221,7 @@ const Reservation = ({ user, globalError }) => {
               )}
               <form action="" method="post" onSubmit={handleSubmit}>
               <button
-                disabled={!geselecteerdeDatum || !geselecteerdeTijd || isSubmitting || !!error}
+                disabled={!geselecteerdeDatum || !geselecteerdeTijd || !geselecteerdeLocatie || isSubmitting || !!error}
                 className="w-full bg-gray-900 text-white py-3 font-bold uppercase tracking-wide text-sm hover:bg-black transition disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Bezig met reserveren..." : "Volgende Stap"}

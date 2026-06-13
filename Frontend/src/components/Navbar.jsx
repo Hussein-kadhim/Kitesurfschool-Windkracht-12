@@ -86,6 +86,7 @@ const Navbar = ({user, setUser}) => {
         {/* Center: Navigation Links (Desktop) */}
         <div className='hidden lg:flex justify-center space-x-6 text-gray-600 font-medium'>
             <Link to="/" className={getLinkClass('/')}>Home</Link>
+            <Link to="/locaties" className={getLinkClass('/locaties')}>Locaties</Link>
             <Link to="/planning" className={getLinkClass('/planning')}>Planning</Link>
             {(!user || user.role === 'klant') && (
               <Link to="/pakketten" className={getLinkClass('/pakketten')}>Reserveren</Link>
@@ -193,6 +194,14 @@ const Navbar = ({user, setUser}) => {
             onClick={() => setIsMenuOpen(false)}
           >
             Home
+          </Link>
+
+          <Link 
+            to="/locaties" 
+            className="block py-2 hover:text-primary transition"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Locaties
           </Link>
 
           <Link 
