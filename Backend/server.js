@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js"
 import packagesRoutes from "./routes/packages.js"
 import reservationRoutes from "./routes/reservation.js"
+import { startCleanupJob } from "./cron/cleanup.js";
 
 dotenv.config();
 
@@ -26,6 +27,8 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    // Start de automatische opschoning voor verlopen afspraken
+    startCleanupJob();
 });
 
 // Trigger reload
