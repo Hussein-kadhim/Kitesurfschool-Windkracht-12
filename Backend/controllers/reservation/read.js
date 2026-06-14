@@ -6,8 +6,16 @@ export const getAllReservations = async (req, res) => {
     }
 
     try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const reservations = await prisma.reservation.findMany({
-            where: { userId: req.user.id },
+            where: { 
+                userId: req.user.id,
+                bookingDate: {
+                    gte: today
+                }
+            },
             orderBy: {
                 bookingDate: "asc"
             }
