@@ -26,7 +26,11 @@ const handleSubmit = async (e) => {
       newErrors.email = "Voer een geldig e-mailadres in";
   }
 
-  if (!form.password) newErrors.password = "Wachtwoord is verplicht";
+if (!form.password) {
+    newErrors.password = "Wachtwoord is verplicht";
+} else if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={\[\]|\\:;"'<>,.?/-]).{12,}$/.test(form.password)) {
+    newErrors.password = "Wachtwoord moet minstens 12 tekens lang zijn en een hoofdletter, cijfer en leesteken bevatten.";
+}
 
   if (Object.keys(newErrors).length > 0) {
       setFieldErrors(newErrors);
