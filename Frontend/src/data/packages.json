@@ -16,7 +16,7 @@
   {
     "id": 2,
     "name": "Losse Duo Kiteles",
-    "value": "DUO_LES",
+    "value": "LOSSE_DUO_LES",
     "price": 135,
     "priceSuffix": "p.p. / 3,5 uur",
     "description": "Samen leren kiten met een vriend of partner. Een losse les met persoonlijke aandacht in een klein duo.",
@@ -30,7 +30,7 @@
   {
     "id": 3,
     "name": "Duo Lespakket 3 Lessen",
-    "value": "GROEPSLES",
+    "value": "DUO_PAKKET_3",
     "price": 375,
     "priceSuffix": "p.p. / 10,5 uur",
     "description": "De meest gekozen lesvorm. Drie lessen met een duo partner voor een complete basis in kitesurfen.",
@@ -44,7 +44,7 @@
   {
     "id": 4,
     "name": "Duo Lespakket 5 Lessen",
-    "value": "GROEPSLES_5_LESSEN",
+    "value": "DUO_PAKKET_5",
     "price": 675,
     "priceSuffix": "p.p. / 17,5 uur",
     "description": "Van beginner naar zelfstandig kiter. Vijf uitgebreide lessen met een duo partner inclusief alle materialen.",
