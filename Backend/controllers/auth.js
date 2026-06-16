@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
+import crypto from 'crypto';
 import { Resend } from "resend";
 import { logAuthEvent } from "../lib/authLogger.js";
 
@@ -32,11 +33,15 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
+
     const user = await prisma.user.create({
         data: {
             name,
             email,
             password: hashedPassword,
+            verificationToken,
             role: "klant"
         },
         select: {
@@ -47,35 +52,65 @@ export const register = async (req, res) => {
         }
     });
 
+    const activationLink = `http://localhost:5173/verify?token=${verificationToken}`;
+
     // Welkomstmail verzenden met Resend
     try {
         await resend.emails.send({
-            from: 'onboarding@resend.dev',
+            from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
             to: email,
-            subject: 'Welkom bij Kitesurfschool Windkracht-12!',
+            subject: 'Activeer je Windkracht-12 account',
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
                 <h2 style="color: #005B96;">Welkom ${name}!</h2>
                 <p>Super leuk dat je een account hebt aangemaakt bij Kitesurfschool Windkracht-12.</p>
-                <p>Met dit account kun je eenvoudig je kitesurflessen boeken, je planning inzien en nog veel meer.</p>
-                <p>We hopen je snel te zien op het water!</p>
+                <p>Klik op de onderstaande link om je e-mailadres te bevestigen en je account te activeren:</p>
+                <a href="${activationLink}" style="display: inline-block; padding: 10px 20px; color: #fff; background-color: #005B96; text-decoration: none; border-radius: 5px;">Account Activeren</a>
                 <p>Met sportieve groet,<br><br><strong>Team Windkracht-12</strong></p>
               </div>
             `
         });
     } catch (emailError) {
-        console.error("Fout bij verzenden van welkomstmail via Resend:", emailError);
+        console.error("Fout bij verzenden van activatiemail:", emailError);
     }
 
-    const token = generateToken(user.id);
-    res.cookie("token", token, cookieOptions);
-
-    // Log the registration/initial login
-    logAuthEvent(email, "login");
-
-    return res.status(201).json({ user })
+    return res.status(201).json({ 
+        message: "Account aangemaakt! Controleer je e-mail om je account te activeren.",
+        user: user
+     })
 }
 
+
+export const verifyEmail = async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ message: "Geen token opgegeven." });
+    }
+
+    try {
+        const user = await prisma.user.findFirst({
+            where: { verificationToken: token }
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: "Ongeldige of verlopen activatiecode." });
+        }
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                isVerified: true,
+                verificationToken: null // Verwijder de token na succesvolle verificatie
+            }
+        });
+
+        return res.status(200).json({ message: "Je account is succesvol geactiveerd! Je kunt nu inloggen." });
+    } catch (error) {
+        console.error("Fout bij verificatie:", error);
+        return res.status(500).json({ message: "Er is een fout opgetreden bij het verifiëren van je account." });
+    }
+};
 
 export const login = async (req, res) => {
     const {email, password} = req.body;
@@ -90,6 +125,10 @@ export const login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({message: "Onjuiste combinatie van e-mailadres en wachtwoord"});
+
+    if (user.isVerified === false) {
+        return res.status(403).json({message: "Je account is nog niet geactiveerd. Controleer je e-mail voor de activatielink."});
+    }
 
     const token = generateToken(user.id);
     res.cookie("token", token, cookieOptions);

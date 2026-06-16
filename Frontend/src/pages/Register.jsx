@@ -10,6 +10,7 @@ const [form, setForm] = useState({
 
 })
 const [error, setError] = useState("")
+const [successMsg, setSuccessMsg] = useState("");
 const [fieldErrors, setFieldErrors] = useState({});
 const navigate = useNavigate();
 
@@ -36,10 +37,11 @@ const handleSubmit = async (e) => {
 
   try {
     const res = await axios.post('/api/auth/register', form);
-    setUser(res.data.user);
-    navigate('/');
+    setSuccessMsg(res.data.message);
+    setError("");
   } catch (err) {
-    setError("Fout bij registreren, e-mailadres is mogelijk al in gebruik");
+    setError("Fout bij aanmelden, probeer het later opnieuw");
+    setSuccessMsg("");
   }
 };
   return (
@@ -47,6 +49,7 @@ const handleSubmit = async (e) => {
 <form className='bg-white p-8 rounded shadow-md w-full max-w-sm' onSubmit={handleSubmit} noValidate>
     <h2 className='text-2xl font-bold mb-6 text-center font-montserrat'>Registreer</h2>
     {error && <div className='text-red-500 mb-4 text-center text-sm font-medium'>{error}</div>}
+    {successMsg && <div className='text-green-500 mb-4 text-center text-sm font-medium'>{successMsg}</div>}
     
     <div className="mb-4">
         <input 
