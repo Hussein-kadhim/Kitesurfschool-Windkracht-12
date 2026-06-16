@@ -58,7 +58,7 @@ model Reservation {
 
 enum LessonType {
   PRIVE_LES
-  DUO_LES
-  GROEPSLES
-  GROEPSLES_5_LESSEN
+  LOSSE_DUO_LES
+  DUO_PAKKET_3
+  DUO_PAKKET_5
 }
