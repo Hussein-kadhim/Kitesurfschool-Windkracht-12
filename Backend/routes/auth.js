@@ -11,13 +11,17 @@ import {
     getAllUsers,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    verifyEmail
 } from "../controllers/auth.js";
 
 const router = express.Router();
 
 // Registeren
 router.post("/register", register)
+
+// Email Verification
+router.post("/verify", verifyEmail)
 
 // Login
 router.post("/login", login)

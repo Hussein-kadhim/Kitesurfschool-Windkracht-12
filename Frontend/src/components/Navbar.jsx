@@ -21,13 +21,14 @@ const Navbar = ({user, setUser}) => {
   const handleLogout = async () => {
     try {
       await axios.post('/api/auth/logout');
+    } catch (error) {
+      console.error("Backend logout failed, but we will clear local session anyway:", error);
+    } finally {
       localStorage.removeItem("token");
       setUser(null);
       setIsMenuOpen(false);
+      setLogoutError(""); 
       navigate('/login');
-    } catch (error) {
-      console.error("Logout failed:", error);
-      setLogoutError("Je kan niet uitloggen door een foutmelding. Je blijft mogelijk ingelogd. Sluit handmatig de browser.");
     }
   };
 
