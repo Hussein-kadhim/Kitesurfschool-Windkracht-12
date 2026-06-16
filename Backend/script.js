@@ -7,6 +7,13 @@ async function main() {
 
   const usersData = [
     {
+      name: "Terence Olieslager",
+      email: "terence@windkracht12.nl", 
+      password: hashedPassword,
+      role: "eigenaar",
+    },
+
+    {
       name: "Hussein",
       email: "hussein@gmail.com",
       password: hashedPassword,
