@@ -5,10 +5,10 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const LESSON_LABELS = {
-  PRIVE_LES: 'Privéles',
-  DUO_LES: 'Losse Duo Kiteles',
-  GROEPSLES: 'Duo Lespakket 3 Lessen',
-  GROEPSLES_5_LESSEN: 'Duo Lespakket 5 Lessen',
+  PRIVE_LES:     'Privéles',
+  LOSSE_DUO_LES: 'Losse Duo Kiteles',
+  DUO_PAKKET_3:  'Duo Lespakket 3 Lessen',
+  DUO_PAKKET_5:  'Duo Lespakket 5 Lessen',
 };
 
 export const deleteReservation = async (req, res) => {

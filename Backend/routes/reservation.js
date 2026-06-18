@@ -4,6 +4,7 @@ import { getAllReservations, getReservationById } from "../controllers/reservati
 import { createReservation } from "../controllers/reservation/create.js";
 import { updateReservation } from "../controllers/reservation/update.js";
 import { deleteReservation } from "../controllers/reservation/delete.js";
+import { cancelNotify } from "../controllers/reservation/cancelNotify.js";
 
 const router = express.Router();
 
@@ -22,4 +23,7 @@ router.put("/:id", protect, updateReservation);
 // Reservering verwijderen
 router.delete("/:id", protect, deleteReservation);
 
-export default router;
+// Standaard annuleringsmail sturen (ziekte / slecht weer)
+router.post("/:id/cancel-notify", protect, cancelNotify);
+
+export default router;
