@@ -39,7 +39,7 @@ const handleSubmit = async (e) => {
     if (!err.response || err.response.status >= 500) {
       setError("Kan momenteel geen verbinding maken met de server. Probeer het later opnieuw.");
     } else {
-      setError("Fout bij inloggen: wachtwoord of e-mailadres klopt niet.");
+      setError(err.response?.data?.message || "Fout bij inloggen: wachtwoord of e-mailadres klopt niet.");
     }
   }
 };

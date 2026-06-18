@@ -6,9 +6,9 @@ import 'react-calendar/dist/Calendar.css';
 
 const LESSON_LABELS = {
   PRIVE_LES: 'Privéles',
-  DUO_LES: 'Losse Duo Kiteles',
-  GROEPSLES: 'Duo Lespakket 3 Lessen',
-  GROEPSLES_5_LESSEN: 'Duo Lespakket 5 Lessen',
+  LOSSE_DUO_LES: 'Losse Duo Kiteles',
+  DUO_PAKKET_3: 'Duo Lespakket 3 Lessen',
+  DUO_PAKKET_5: 'Duo Lespakket 5 Lessen',
 };
 
 const STATUS_CONFIG = {
@@ -30,7 +30,7 @@ const Dashboard = ({ user }) => {
   const [actiefId, setActiefId]         = useState(null);
   const [wijzigId, setWijzigId]         = useState(null);
   const [nieuweDatum, setNieuweDatum]   = useState(null);
-  const [confirmId, setConfirmId]       = useState(null); // inline bevestiging
+  const [confirmId, setConfirmId]       = useState(null);
 
   useEffect(() => {
     const fetchReservations = async () => {

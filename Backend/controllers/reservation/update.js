@@ -15,7 +15,7 @@ export const updateReservation = async (req, res) => {
 
     try {
         const { id } = req.params;
-        const { bookingDate, status } = req.body;
+        const { bookingDate, status, hasPaid } = req.body;
 
         // Haal de reservering + gebruiker op
         const bestaand = await prisma.reservation.findUnique({
@@ -44,6 +44,13 @@ export const updateReservation = async (req, res) => {
             if (!geldige.includes(status))
                 return res.status(400).json({ message: "Ongeldige status" });
             updateData.status = status;
+        }
+
+        if (typeof hasPaid === 'boolean') {
+            updateData.hasPaid = hasPaid;
+            if (hasPaid === true && (!status || status !== "GEANNULEERD")) {
+                updateData.status = "DEFINITIEF";
+            }
         }
 
         const reservation = await prisma.reservation.update({

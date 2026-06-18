@@ -34,6 +34,7 @@ const Reservation = ({ user, globalError }) => {
   const [geselecteerdeLocatie, setGeselecteerdeLocatie] = useState("");
   const [error, setError] = useState(globalError || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   if (!pkg) {
     return (
@@ -78,14 +79,8 @@ const Reservation = ({ user, globalError }) => {
         }),
       });
       if (res.ok) {
-        navigate('/success', {
-          state: {
-            lessonName: pkg.name,
-            date: geselecteerdeDatum.toISOString(),
-            time: geselecteerdeTijd,
-            price: pkg.price
-          }
-        });
+        setIsSuccess(true);
+        window.scrollTo(0, 0);
       } else {
         const errorData = await res.json().catch(() => ({}));
         setError(errorData.message || "Er is wat mis gegaan. De server is onbereikbaar.");
@@ -101,9 +96,29 @@ const Reservation = ({ user, globalError }) => {
     <div className="min-h-screen bg-cream pb-16">
       <div className="max-w-7xl mx-auto px-6 py-12">
 
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold font-montserrat text-gray-900">Selecteer Datum &amp; Tijd</h1>
-        </div>
+        {isSuccess ? (
+          <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
+            <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mb-6 shadow-sm">
+              <i className="fa-solid fa-envelope text-white text-3xl"></i>
+            </div>
+            <h1 className="text-3xl font-bold font-montserrat text-gray-900 mb-4 text-center">
+              Aanvraag succesvol ontvangen!
+            </h1>
+            <p className="text-gray-600 text-center max-w-lg mb-8 text-lg">
+              We hebben een bevestigingsmail gestuurd naar jouw e-mailadres. Klik op de link in deze mail om je reservering definitief te maken.
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="bg-gray-900 text-white px-8 py-3 font-bold uppercase tracking-wider text-sm hover:bg-black transition"
+            >
+              Terug naar Home
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-10">
+              <h1 className="text-3xl font-bold font-montserrat text-gray-900">Selecteer Datum &amp; Tijd</h1>
+            </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
 
@@ -237,6 +252,8 @@ const Reservation = ({ user, globalError }) => {
           </div>
 
         </div>
+        </>
+        )}
       </div>
     </div>
   );
