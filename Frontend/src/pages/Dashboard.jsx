@@ -30,7 +30,10 @@ const Dashboard = ({ user }) => {
   const [actiefId, setActiefId]         = useState(null);
   const [wijzigId, setWijzigId]         = useState(null);
   const [nieuweDatum, setNieuweDatum]   = useState(null);
-  const [confirmId, setConfirmId]       = useState(null);
+  const [cancelId, setCancelId]         = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelError, setCancelError]   = useState('');
+  const [notifyMsg, setNotifyMsg]       = useState({});
 
   useEffect(() => {
     const fetchReservations = async () => {
@@ -46,22 +49,53 @@ const Dashboard = ({ user }) => {
     if (user) fetchReservations();
   }, [user]);
 
-  // Annuleer (verwijder) 
-  const handleAnnuleer = async (id) => {
+  // Annuleer met reden
+  const openCancelModal = (id) => {
+    setCancelId(id);
+    setCancelReason('');
+    setCancelError('');
+    setExpanded(null);
+    setWijzigId(null);
+  };
+
+  const sluitCancelModal = () => {
+    setCancelId(null);
+    setCancelReason('');
+    setCancelError('');
+  };
+
+  // Stuur ziekte/slecht-weer mail (eigenaar & instructeur)
+  const handleCancelNotify = async (id, type) => {
+    setNotifyMsg(prev => ({ ...prev, [id]: { loading: true } }));
+    try {
+      const res = await axios.post(`/api/reservations/${id}/cancel-notify`, { type });
+      setNotifyMsg(prev => ({ ...prev, [id]: { success: res.data.message } }));
+    } catch (err) {
+      setNotifyMsg(prev => ({ ...prev, [id]: { error: err.response?.data?.message || 'Mail versturen mislukt.' } }));
+    }
+  };
+
+  const bevestigAnnulering = async (id) => {
+    if (!cancelReason.trim()) {
+      setCancelError('Vul een reden in voor de annulering.');
+      return;
+    }
     setActiefId(id);
     try {
-      await axios.delete(`/api/reservations/${id}`);
-      setReservations(prev => prev.filter(r => r.id !== id));
-      setExpanded(null);
-      setConfirmId(null);
+      const res = await axios.put(`/api/reservations/${id}`, {
+        status: 'GEANNULEERD',
+        cancelReason: cancelReason.trim(),
+      });
+      setReservations(prev => prev.map(r => r.id === id ? res.data : r));
+      sluitCancelModal();
     } catch (err) {
-      alert(err.response?.data?.message || 'Annuleren mislukt. Probeer het opnieuw.');
+      setCancelError(err.response?.data?.message || 'Annuleren mislukt. Probeer het opnieuw.');
     } finally {
       setActiefId(null);
     }
   };
 
-  // Wijzig datum 
+  // Wijzig datum
   const openWijzig = (id, huidigeDatum) => {
     setWijzigId(id);
     setNieuweDatum(new Date(huidigeDatum));
@@ -193,7 +227,7 @@ const Dashboard = ({ user }) => {
                       {/* Actieknoppen */}
                       <div className="flex items-center gap-2 shrink-0 flex-wrap">
                         <button
-                          onClick={() => { setExpanded(isOpen ? null : res.id); setWijzigId(null); }}
+                          onClick={() => { setExpanded(isOpen ? null : res.id); setWijzigId(null); sluitCancelModal(); }}
                           className="border border-gray-300 text-gray-700 hover:border-black hover:text-black transition px-4 py-2 text-xs font-semibold uppercase tracking-wider"
                         >
                           {isOpen ? 'Sluiten' : 'Details'}
@@ -201,42 +235,64 @@ const Dashboard = ({ user }) => {
 
                         {!geannuleerd && (
                           <button
-                            onClick={() => isWijzig ? annuleerWijziging() : openWijzig(res.id, res.bookingDate)}
+                            onClick={() => { isWijzig ? annuleerWijziging() : openWijzig(res.id, res.bookingDate); sluitCancelModal(); }}
                             className="border border-gray-300 text-gray-700 hover:border-black hover:text-black transition px-4 py-2 text-xs font-semibold uppercase tracking-wider"
                           >
                             {isWijzig ? 'Annuleer' : 'Wijzig datum'}
                           </button>
                         )}
 
-                        {!geannuleerd && confirmId !== res.id && (
+                        {!geannuleerd && (
                           <button
-                            onClick={() => setConfirmId(res.id)}
-                            className="border border-red-300 text-red-600 hover:bg-red-50 transition px-4 py-2 text-xs font-semibold uppercase tracking-wider"
+                            onClick={() => cancelId === res.id ? sluitCancelModal() : openCancelModal(res.id)}
+                            className={`border transition px-4 py-2 text-xs font-semibold uppercase tracking-wider ${
+                              cancelId === res.id
+                                ? 'border-red-500 bg-red-50 text-red-700'
+                                : 'border-red-300 text-red-600 hover:bg-red-50'
+                            }`}
                           >
-                            Annuleer les
+                            {cancelId === res.id ? 'Sluiten' : 'Annuleer les'}
                           </button>
                         )}
 
-                        {!geannuleerd && confirmId === res.id && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-600">Weet je het zeker?</span>
+                        {/* Knoppen voor instructeur & eigenaar */}
+                        {!geannuleerd && (user?.role === 'eigenaar' || user?.role === 'instructeur') && (
+                          <>
                             <button
-                              disabled={bezig}
-                              onClick={() => handleAnnuleer(res.id)}
-                              className="bg-red-600 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition disabled:opacity-50"
+                              disabled={notifyMsg[res.id]?.loading}
+                              onClick={() => handleCancelNotify(res.id, 'ziekte')}
+                              className="border border-orange-300 text-orange-600 hover:bg-orange-50 transition px-4 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+                              title="Stuur standaard mail: les geannuleerd wegens ziekte instructeur"
                             >
-                              {bezig ? '...' : 'Ja'}
+                              🤒 Ziekte mail
                             </button>
                             <button
-                              onClick={() => setConfirmId(null)}
-                              className="border border-gray-300 text-gray-600 px-4 py-2 text-xs font-semibold uppercase tracking-wider hover:border-black transition"
+                              disabled={notifyMsg[res.id]?.loading}
+                              onClick={() => handleCancelNotify(res.id, 'slecht_weer')}
+                              className="border border-blue-300 text-blue-600 hover:bg-blue-50 transition px-4 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+                              title="Stuur standaard mail: les geannuleerd wegens slecht weer"
                             >
-                              Nee
+                              🌧️ Slecht weer mail
                             </button>
-                          </div>
+                          </>
                         )}
                       </div>
                     </div>
+
+                    {/* Feedback notify */}
+                    {notifyMsg[res.id] && (notifyMsg[res.id].success || notifyMsg[res.id].error) && (
+                      <div className={`px-5 py-3 text-xs font-medium border-t ${
+                        notifyMsg[res.id].success
+                          ? 'bg-green-50 border-green-100 text-green-700'
+                          : 'bg-red-50 border-red-100 text-red-700'
+                      }`}>
+                        {notifyMsg[res.id].success || notifyMsg[res.id].error}
+                        <button
+                          className="ml-3 underline"
+                          onClick={() => setNotifyMsg(prev => { const n = {...prev}; delete n[res.id]; return n; })}
+                        >Sluiten</button>
+                      </div>
+                    )}
 
                     {/* Datum wijzigen — inline kalender */}
                     {isWijzig && (
@@ -310,6 +366,42 @@ const Dashboard = ({ user }) => {
                               )}
                             </p>
                           </div>
+                          {res.cancelReason && (
+                            <div className="col-span-2">
+                              <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Reden annulering</span>
+                              <p className="font-medium mt-0.5 text-red-700">{res.cancelReason}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Annuleer-reden modal (inline) */}
+                    {cancelId === res.id && (
+                      <div className="border-t border-red-100 bg-red-50 px-5 py-5">
+                        <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-3">Reden voor annulering <span className="text-red-500">*</span></p>
+                        <textarea
+                          className="w-full border-2 border-red-200 focus:border-red-400 focus:outline-none p-3 text-sm text-gray-800 resize-none rounded"
+                          rows={3}
+                          placeholder="Bijv. ik ben ziek geworden, persoonlijke omstandigheden..."
+                          value={cancelReason}
+                          onChange={(e) => { setCancelReason(e.target.value); setCancelError(''); }}
+                        />
+                        {cancelError && <p className="text-red-600 text-xs mt-1 font-medium">{cancelError}</p>}
+                        <div className="flex gap-3 mt-3">
+                          <button
+                            disabled={bezig}
+                            onClick={() => bevestigAnnulering(res.id)}
+                            className="bg-red-600 text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition disabled:opacity-50"
+                          >
+                            {bezig ? 'Bezig...' : 'Bevestig annulering'}
+                          </button>
+                          <button
+                            onClick={sluitCancelModal}
+                            className="border border-gray-300 text-gray-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider hover:border-black transition"
+                          >
+                            Terug
+                          </button>
                         </div>
                       </div>
                     )}
