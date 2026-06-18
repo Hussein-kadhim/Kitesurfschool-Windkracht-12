@@ -351,9 +351,10 @@ const Dashboard = ({ user }) => {
                             </div>
                           )}
                           {res.duoName && (
-                            <div>
-                              <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Duo partner</span>
-                              <p className="font-medium mt-0.5">{res.duoName}</p>
+                            <div className="col-span-1 sm:col-span-2 border-t border-gray-100 pt-2 mt-1">
+                              <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Gegevens Duo-partner</span>
+                              <p className="font-medium mt-0.5">{res.duoName} ({res.duoPhone || 'Geen tel.'})</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{res.duoAddress}, {res.duoCity}</p>
                             </div>
                           )}
                           <div>

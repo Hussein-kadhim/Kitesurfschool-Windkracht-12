@@ -32,9 +32,15 @@ const Reservation = ({ user, globalError }) => {
   ];
   
   const [geselecteerdeLocatie, setGeselecteerdeLocatie] = useState("");
+  const [duoName, setDuoName] = useState("");
+  const [duoAddress, setDuoAddress] = useState("");
+  const [duoCity, setDuoCity] = useState("");
+  const [duoPhone, setDuoPhone] = useState("");
   const [error, setError] = useState(globalError || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  const isDuo = pkg.value !== 'PRIVE_LES';
 
   if (!pkg) {
     return (
@@ -57,9 +63,21 @@ const Reservation = ({ user, globalError }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!geselecteerdeLocatie) {
+      setError("Selecteer eerst een locatie.");
+      return;
+    }
+
     if (!geselecteerdeTijd) {
       setError("Selecteer eerst een tijdslot.");
       return;
+    }
+
+    if (isDuo) {
+      if (!duoName.trim() || !duoAddress.trim() || !duoCity.trim() || !duoPhone.trim()) {
+        setError("Vul alle gegevens van je duo-partner in.");
+        return;
+      }
     }
 
     try {
@@ -76,6 +94,11 @@ const Reservation = ({ user, globalError }) => {
           userId: user?.id,
           price: pkg.price,
           bookingDate: geselecteerdeDatum.toISOString(),
+          location: geselecteerdeLocatie,
+          duoName: isDuo ? duoName.trim() : null,
+          duoAddress: isDuo ? duoAddress.trim() : null,
+          duoCity: isDuo ? duoCity.trim() : null,
+          duoPhone: isDuo ? duoPhone.trim() : null,
         }),
       });
       if (res.ok) {
@@ -159,6 +182,58 @@ const Reservation = ({ user, globalError }) => {
                 </div>
               </div>
             </div>
+
+            {/* Gegevens Duo-partner */}
+            {isDuo && (
+              <div className={`bg-white border-2 border-gray-200 p-6 space-y-4 ${error ? 'pointer-events-none opacity-50' : ''}`}>
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                  <span className="font-bold text-gray-900">Gegevens Duo-partner</span>
+                  <i className="fa-solid fa-users text-gray-400"></i>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Naam</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-gray-200 p-3 bg-gray-50 focus:border-black focus:bg-white focus:outline-none transition font-medium text-sm"
+                      placeholder="Naam duo-partner"
+                      value={duoName}
+                      onChange={(e) => setDuoName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Telefoonnummer (Mobiel)</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-gray-200 p-3 bg-gray-50 focus:border-black focus:bg-white focus:outline-none transition font-medium text-sm"
+                      placeholder="Telefoonnummer"
+                      value={duoPhone}
+                      onChange={(e) => setDuoPhone(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Adres</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-gray-200 p-3 bg-gray-50 focus:border-black focus:bg-white focus:outline-none transition font-medium text-sm"
+                      placeholder="Straat en huisnummer"
+                      value={duoAddress}
+                      onChange={(e) => setDuoAddress(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Woonplaats</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-gray-200 p-3 bg-gray-50 focus:border-black focus:bg-white focus:outline-none transition font-medium text-sm"
+                      placeholder="Woonplaats"
+                      value={duoCity}
+                      onChange={(e) => setDuoCity(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Tijdsloten */}
             {geselecteerdeDatum && (
