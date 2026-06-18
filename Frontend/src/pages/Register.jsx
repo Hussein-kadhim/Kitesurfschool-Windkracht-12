@@ -4,10 +4,7 @@ import { useNavigate } from 'react-router-dom';
  
 function Register({setUser}) {
 const [form, setForm] = useState({
-    name: "",
     email: "",
-    password: "",
-
 })
 const [error, setError] = useState("")
 const [successMsg, setSuccessMsg] = useState("");
@@ -18,19 +15,12 @@ const handleSubmit = async (e) => {
   e.preventDefault();
 
   const newErrors = {};
-  if (!form.name) newErrors.name = "Naam is verplicht";
 
   if (!form.email) {
       newErrors.email = "E-mailadres is verplicht";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       newErrors.email = "Voer een geldig e-mailadres in";
   }
-
-if (!form.password) {
-    newErrors.password = "Wachtwoord is verplicht";
-} else if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={\[\]|\\:;"'<>,.?/-]).{12,}$/.test(form.password)) {
-    newErrors.password = "Wachtwoord moet minstens 12 tekens lang zijn en een hoofdletter, cijfer en leesteken bevatten.";
-}
 
   if (Object.keys(newErrors).length > 0) {
       setFieldErrors(newErrors);
@@ -44,7 +34,11 @@ if (!form.password) {
     setSuccessMsg(res.data.message);
     setError("");
   } catch (err) {
-    setError("Fout bij aanmelden, probeer het later opnieuw");
+    if (err.response && err.response.data && err.response.data.message) {
+      setError(err.response.data.message);
+    } else {
+      setError("Fout bij aanmelden, probeer het later opnieuw");
+    }
     setSuccessMsg("");
   }
 };
@@ -55,37 +49,15 @@ if (!form.password) {
     {error && <div className='text-red-500 mb-4 text-center text-sm font-medium'>{error}</div>}
     {successMsg && <div className='text-green-500 mb-4 text-center text-sm font-medium'>{successMsg}</div>}
     
-    <div className="mb-4">
-        <input 
-            type="text" 
-            placeholder='Naam' 
-            className={`border p-2 w-full focus:outline-none ${fieldErrors.name ? 'border-red-500' : 'border-gray-300 focus:border-primary'}`} 
-            value={form.name} 
-            onChange={(e) => { setForm({...form, name: e.target.value}); setFieldErrors({...fieldErrors, name: ''}); }}
-        />    
-        {fieldErrors.name && <p className="text-red-500 text-xs mt-1 text-left">{fieldErrors.name}</p>}
-    </div>
-
-    <div className="mb-4">
+    <div className="mb-6">
         <input 
             type="email" 
             placeholder='E-mailadres' 
             className={`border p-2 w-full focus:outline-none ${fieldErrors.email ? 'border-red-500' : 'border-gray-300 focus:border-primary'}`} 
             value={form.email} 
-            onChange={(e) => { setForm({...form, email: e.target.value}); setFieldErrors({...fieldErrors, email: ''}); }}
+            onChange={(e) => { setForm({email: e.target.value}); setFieldErrors({...fieldErrors, email: ''}); }}
         />
         {fieldErrors.email && <p className="text-red-500 text-xs mt-1 text-left">{fieldErrors.email}</p>}
-    </div>
-
-    <div className="mb-6">
-        <input 
-            type="password" 
-            placeholder='Wachtwoord' 
-            className={`border p-2 w-full focus:outline-none ${fieldErrors.password ? 'border-red-500' : 'border-gray-300 focus:border-primary'}`} 
-            value={form.password} 
-            onChange={(e) => { setForm({...form, password: e.target.value}); setFieldErrors({...fieldErrors, password: ''}); }}
-        /> 
-        {fieldErrors.password && <p className="text-red-500 text-xs mt-1 text-left">{fieldErrors.password}</p>}
     </div>
 
     <button className='bg-primary text-white p-2 w-full font-bold hover:opacity-90 transition'>Registreer</button>
