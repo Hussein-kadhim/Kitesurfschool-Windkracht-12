@@ -37,6 +37,7 @@ export const createReservation = async (req, res) => {
             }
         });
 
+        const bookingConfirmation = `http://localhost:5173/bevestiging/${reservation.id}`;
         try {
             await resend.emails.send({
               from: 'onboarding@resend.dev',
@@ -55,6 +56,7 @@ export const createReservation = async (req, res) => {
                        <li><strong>Totaalbedrag:</strong> €${parsedPrice.toFixed(2)}</li>
                     </ul>
                   </div>
+                  <a href="${bookingConfirmation}" style="display: inline-block; padding: 10px 20px; color: #fff; background-color: #005B96; text-decoration: none; border-radius: 5px; margin-top: 10px; margin-bottom: 10px;">Bevestig je reservering (betalen)</a>
                   <p>We nemen binnenkort contact met je op als er bijzonderheden zijn met betrekking tot de wind- en weersomstandigheden.</p>
                   <p>Met vriendelijke groet,<br><br><strong>Team Windkracht-12</strong></p>
                 </div>
@@ -67,6 +69,6 @@ export const createReservation = async (req, res) => {
         res.json(reservation);
     } catch (error) {
         console.log(error);
-        return res.status(500).json({message: "Er is iets misgegaan bij het reserveren."});
+        return res.status(500).json({message: "Er is iets misgegaan bij het reserveren: " + error.message});
     }
 }
