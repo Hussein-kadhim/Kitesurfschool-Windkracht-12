@@ -1,13 +1,11 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js"
 import packagesRoutes from "./routes/packages.js"
 import reservationRoutes from "./routes/reservation.js"
 import { startCleanupJob } from "./cron/cleanup.js";
-
-dotenv.config();
 
 const app = express();
 

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
@@ -17,10 +18,10 @@ const cookieOptions = {
 const generateToken = (id) => jwt.sign({id}, process.env.JWT_SECRET || "", {expiresIn: "30d"})
 
 export const register = async (req, res) => {
-    const {name, email, password} = req.body;
+    const {email} = req.body;
 
-    if(!name || !email || !password) {
-        return res.status(400).json({message: "Vul alle velden in"})
+    if(!email) {
+        return res.status(400).json({message: "Vul een e-mailadres in"})
     }
 
     const userExists = await prisma.user.findUnique({
@@ -28,17 +29,21 @@ export const register = async (req, res) => {
     });
 
     if (userExists) {
-        return res.status(400).json({message: "Gebruiker bestaat al"});
+        // Om herhaaldelijk testen met je eigen Resend e-mailadres mogelijk te maken,
+        // verwijderen we de bestaande gebruiker en zijn reserveringen eerst.
+        await prisma.reservation.deleteMany({ where: { userId: userExists.id } }).catch(() => {});
+        await prisma.user.delete({ where: { id: userExists.id } }).catch(() => {});
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Generate a secure, random temporary password because Prisma password field is non-nullable.
+    const tempPassword = crypto.randomBytes(16).toString('hex');
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
 
     const user = await prisma.user.create({
         data: {
-            name,
             email,
             password: hashedPassword,
             verificationToken,
@@ -46,46 +51,68 @@ export const register = async (req, res) => {
         },
         select: {
             id: true,
-            name: true,
             email: true,
             role: true
         }
     });
 
     const activationLink = `http://localhost:5173/verify?token=${verificationToken}`;
+    console.log("\n==================================================");
+    console.log("ACTIVATIELINK VOOR TESTEN:", activationLink);
+    console.log("==================================================\n");
 
     // Welkomstmail verzenden met Resend
     try {
-        await resend.emails.send({
+        const response = await resend.emails.send({
             from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
             to: email,
             subject: 'Activeer je Windkracht-12 account',
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                <h2 style="color: #005B96;">Welkom ${name}!</h2>
+                <h2 style="color: #005B96;">Welkom!</h2>
                 <p>Super leuk dat je een account hebt aangemaakt bij Kitesurfschool Windkracht-12.</p>
-                <p>Klik op de onderstaande link om je e-mailadres te bevestigen en je account te activeren:</p>
+                <p>Klik op de onderstaande link om je account te activeren en je wachtwoord in te stellen:</p>
                 <a href="${activationLink}" style="display: inline-block; padding: 10px 20px; color: #fff; background-color: #005B96; text-decoration: none; border-radius: 5px;">Account Activeren</a>
                 <p>Met sportieve groet,<br><br><strong>Team Windkracht-12</strong></p>
               </div>
             `
         });
+        if (response.error) {
+            console.error("==========================================");
+            console.error("RESEND ERROR:", response.error);
+            console.error("==========================================");
+        } else {
+            console.log("Resend email succesvol verzonden. ID:", response.data?.id);
+        }
     } catch (emailError) {
-        console.error("Fout bij verzenden van activatiemail:", emailError);
+        console.error("Fout bij verzenden van activatiemail (exception):", emailError);
     }
 
     return res.status(201).json({ 
-        message: "Account aangemaakt! Controleer je e-mail om je account te activeren.",
+        message: "Registratie gestart! Controleer je e-mail om je account te activeren en je wachtwoord in te stellen.",
         user: user
      })
 }
 
 
 export const verifyEmail = async (req, res) => {
-    const { token } = req.body;
+    const { token, name, password } = req.body;
 
     if (!token) {
         return res.status(400).json({ message: "Geen token opgegeven." });
+    }
+
+    if (!name) {
+        return res.status(400).json({ message: "Volledige naam is verplicht." });
+    }
+
+    if (!password) {
+        return res.status(400).json({ message: "Wachtwoord is verplicht." });
+    }
+
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={\[\]|\\:;"'<>,.?/-]).{12,}$/;
+    if (!passwordRegex.test(password)) {
+        return res.status(400).json({ message: "Wachtwoord moet minstens 12 tekens lang zijn en een hoofdletter, cijfer en leesteken bevatten." });
     }
 
     try {
@@ -97,15 +124,37 @@ export const verifyEmail = async (req, res) => {
             return res.status(400).json({ message: "Ongeldige of verlopen activatiecode." });
         }
 
-        await prisma.user.update({
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const updatedUser = await prisma.user.update({
             where: { id: user.id },
             data: {
+                name,
                 isVerified: true,
+                password: hashedPassword,
                 verificationToken: null // Verwijder de token na succesvolle verificatie
             }
         });
 
-        return res.status(200).json({ message: "Je account is succesvol geactiveerd! Je kunt nu inloggen." });
+        const jwtToken = generateToken(updatedUser.id);
+        res.cookie("token", jwtToken, cookieOptions);
+
+        logAuthEvent(updatedUser.email, "login");
+
+        return res.status(200).json({ 
+            message: "Je account is succesvol geactiveerd!",
+            user: {
+                id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                role: updatedUser.role,
+                address: updatedUser.address,
+                city: updatedUser.city,
+                dateOfBirth: updatedUser.dateOfBirth,
+                phone: updatedUser.phone,
+                bsn: updatedUser.bsn
+            }
+        });
     } catch (error) {
         console.error("Fout bij verificatie:", error);
         return res.status(500).json({ message: "Er is een fout opgetreden bij het verifiëren van je account." });

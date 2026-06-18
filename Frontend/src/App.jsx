@@ -83,7 +83,7 @@ function App() {
     <Route path="/reset-password" element={user ? <Navigate to="/" /> : <ResetPassword />} />
     <Route path="/pakketten" element={<Packages />} />
     <Route path="/locaties" element={<Locations />} />
-    <Route path="/verify" element={<Verify />} />
+    <Route path="/verify" element={<Verify setUser={updateUser} />} />
     <Route path="/bevestiging/:id" element={<Success />} />
     <Route path="/reservering/:id" element={(user || error || loading) ? <Reservation user={user} globalError={error} /> : <Navigate to="/login" />} />
     <Route path="/success" element={user ? <Success /> : <Navigate to="/login" />} />
