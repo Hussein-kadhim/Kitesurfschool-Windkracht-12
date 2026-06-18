@@ -98,6 +98,15 @@ export const createReservation = async (req, res) => {
                     </ul>
                   </div>
                   ${duoGegevensHtml}
+                  <div style="background-color: #f5f5f0; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #111;">Betalingsinstructies:</h3>
+                    <p style="margin-bottom: 8px; font-size: 14px;">Maak het totaalbedrag over naar de rekening van de kitesurfschool:</p>
+                    <ul style="list-style: none; padding-left: 0; margin: 0; font-size: 14px;">
+                       <li style="margin-bottom: 8px;"><strong>IBAN:</strong> NL99 INGB 0123 4567 89</li>
+                       <li style="margin-bottom: 8px;"><strong>Ten name van:</strong> Kitesurfschool Windkracht-12</li>
+                       <li style="margin-bottom: 8px;"><strong>Betalingskenmerk:</strong> Reservering #${reservation.id}</li>
+                    </ul>
+                  </div>
                   <a href="${bookingConfirmation}" style="display: inline-block; padding: 10px 20px; color: #fff; background-color: #005B96; text-decoration: none; border-radius: 5px; margin-top: 10px; margin-bottom: 10px;">Bevestig je reservering (betalen)</a>
                   <p>We nemen binnenkort contact met je op als er bijzonderheden zijn met betrekking tot de wind- en weersomstandigheden.</p>
                   <p>Met vriendelijke groet,<br><br><strong>Team Windkracht-12</strong></p>
