@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js"
 import packagesRoutes from "./routes/packages.js"
 import reservationRoutes from "./routes/reservation.js"
+import gebruikersRoutes from "./routes/users.js"
 import { startCleanupJob } from "./cron/cleanup.js";
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/packages", packagesRoutes);
 app.use("/api/reservations", reservationRoutes);
+app.use("/api/gebruikers", gebruikersRoutes);
 
 const PORT = process.env.PORT || 5000;
 
