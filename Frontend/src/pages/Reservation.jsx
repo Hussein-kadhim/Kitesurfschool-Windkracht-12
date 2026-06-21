@@ -280,7 +280,17 @@ const Reservation = ({ user, globalError }) => {
                 ) : (
                   <div className="flex flex-col gap-3">
                     {availableSlots.map((slot) => {
-                      const isVol = false; //TODO: reservations logic
+                      let isVol = false;
+                      if (slot.hasPrive) {
+                        isVol = true; // Als er een privéles in dit slot zit, is het helemaal vol
+                      } else if (slot.bookedCount >= slot.maxPersons) {
+                        isVol = true; // Maximale capaciteit bereikt
+                      } else if (!isDuo && slot.bookedCount > 0) {
+                        isVol = true; // Wil een privéles boeken, maar er zit al iemand in de groep
+                      } else if (isDuo && (slot.maxPersons - slot.bookedCount < 2)) {
+                        isVol = true; // Wil een duoles (2 personen) boeken, maar er is maar 1 plek over
+                      }
+
                       const isSel = geselecteerdeTijd === slot.time;
                       return (
                         <button

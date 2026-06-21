@@ -200,9 +200,11 @@ const Dashboard = ({ user }) => {
   };
 
   const filteredReservations = reservations.filter(res => {
+    if (res.status === 'GEANNULEERD') return false; // Verberg altijd geannuleerde reserveringen
+    
     if (filterType === 'ALL') return true;
     if (filterType === 'BETAALD') return res.hasPaid || res.status === 'DEFINITIEF';
-    if (filterType === 'OPEN') return !res.hasPaid && res.status !== 'DEFINITIEF' && res.status !== 'GEANNULEERD';
+    if (filterType === 'OPEN') return !res.hasPaid && res.status !== 'DEFINITIEF';
     return true;
   });
 

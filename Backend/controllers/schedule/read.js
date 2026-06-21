@@ -39,6 +39,7 @@ export const getSchedules = async (req, res) => {
                 duoName: true,
                 status: true,
                 hasPaid: true,
+                lesson: true,
                 user: { select: { name: true, email: true } }
             }
         });
@@ -53,13 +54,16 @@ export const getSchedules = async (req, res) => {
 
             // Tel het aantal personen (1 voor privé, 2 voor duo)
             let bookedCount = 0;
+            let hasPrive = false;
             relatedReservations.forEach(res => {
                 bookedCount += (res.duoName && res.duoName.trim() !== '') ? 2 : 1;
+                if (res.lesson === 'PRIVE_LES') hasPrive = true;
             });
 
             return {
                 ...schedule,
                 bookedCount,
+                hasPrive,
                 reservations: req.user.role === 'eigenaar' || req.user.role === 'instructeur' ? relatedReservations : []
             };
         });

@@ -15,14 +15,13 @@ const AdminLessons = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [globalNotify, setGlobalNotify] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [filterInstructorId, setFilterInstructorId] = useState('ALL');
   const [viewType, setViewType] = useState('ALL');
   
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({
-    defaultValues: { maxPersons: 2 }
-  });
+  const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   const fetchData = async () => {
     try {
@@ -61,7 +60,7 @@ const AdminLessons = ({ user }) => {
       date: dateObj,
       time: data.time,
       instructorId: parseInt(data.instructorId),
-      maxPersons: parseInt(data.maxPersons) || 2
+      maxPersons: 2
     };
 
     try {
@@ -72,7 +71,7 @@ const AdminLessons = ({ user }) => {
         await axios.post('/api/schedule', payload);
         setSuccessMsg('Les succesvol in de agenda geplaatst!');
       }
-      reset({ maxPersons: 2 });
+      reset();
       setEditingId(null);
       fetchData(); // ververs lijst
       setTimeout(() => setSuccessMsg(''), 3000);
@@ -88,8 +87,7 @@ const AdminLessons = ({ user }) => {
     reset({
       date: new Date(s.date).toISOString().split('T')[0],
       time: s.time,
-      instructorId: s.instructorId,
-      maxPersons: s.maxPersons || 2
+      instructorId: s.instructorId
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -98,9 +96,13 @@ const AdminLessons = ({ user }) => {
     try {
       await axios.delete(`/api/schedule/${id}?reason=${reason}`);
       setDeleteConfirmId(null);
+      setGlobalNotify({ type: 'success', text: 'Les succesvol geannuleerd/verwijderd.' });
       fetchData(); // ververs lijst
+      setTimeout(() => setGlobalNotify(null), 5000);
     } catch (err) {
-      alert(err.response?.data?.message || 'Fout bij verwijderen/annuleren.');
+      setGlobalNotify({ type: 'error', text: err.response?.data?.message || 'Fout bij verwijderen/annuleren.' });
+      setTimeout(() => setGlobalNotify(null), 5000);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -110,9 +112,13 @@ const AdminLessons = ({ user }) => {
         status: 'DEFINITIEF',
         hasPaid: true
       });
+      setGlobalNotify({ type: 'success', text: 'Betaling geaccepteerd en reservering definitief gemaakt.' });
       fetchData(); // Herlaad de agenda en reserveringen om de nieuwe status te tonen
+      setTimeout(() => setGlobalNotify(null), 5000);
     } catch (err) {
-      alert(err.response?.data?.message || 'Fout bij accepteren van betaling.');
+      setGlobalNotify({ type: 'error', text: err.response?.data?.message || 'Fout bij accepteren van betaling.' });
+      setTimeout(() => setGlobalNotify(null), 5000);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -149,6 +155,13 @@ const AdminLessons = ({ user }) => {
           </p>
         </div>
 
+        {globalNotify && (
+          <div className={`flex items-center gap-3 px-4 py-3 text-sm font-medium border ${globalNotify.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800'}`}>
+            <i className={`fa-solid ${globalNotify.type === 'error' ? 'fa-triangle-exclamation text-red-500' : 'fa-circle-check text-green-500'}`} /> 
+            {globalNotify.text}
+          </div>
+        )}
+
         {isEigenaar && !editingId && (
           <div className="bg-white border border-gray-200 shadow-sm p-6">
             <h2 className="text-base font-bold font-montserrat text-gray-900 mb-5">
@@ -161,7 +174,7 @@ const AdminLessons = ({ user }) => {
               </div>
             )}
             
-            <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div className="flex flex-col gap-1 relative pb-4">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Datum</label>
                 <input type="date" {...register('date', { required: 'Selecteer een datum' })} className={`border px-3 py-2 text-sm focus:outline-none bg-white ${errors.date ? 'border-red-400 focus:border-red-500' : 'border-gray-300 focus:border-black'}`} />
@@ -183,15 +196,10 @@ const AdminLessons = ({ user }) => {
                 </select>
                 {errors.instructorId && <p className="text-red-500 text-[10px] font-bold absolute bottom-0 left-0">{errors.instructorId.message}</p>}
               </div>
-              <div className="flex flex-col gap-1 relative pb-4">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Capaciteit</label>
-                <input type="number" min="1" max="10" {...register('maxPersons', { required: 'Vul capaciteit in', min: { value: 1, message: 'Min 1' } })} className={`border px-3 py-2 text-sm focus:outline-none bg-white ${errors.maxPersons ? 'border-red-400 focus:border-red-500' : 'border-gray-300 focus:border-black'}`} />
-                {errors.maxPersons && <p className="text-red-500 text-[10px] font-bold absolute bottom-0 left-0">{errors.maxPersons.message}</p>}
-              </div>
               
-              {serverError && <p className="md:col-span-4 text-red-600 text-xs font-medium">{serverError}</p>}
+              {serverError && <p className="md:col-span-3 text-red-600 text-xs font-medium">{serverError}</p>}
               
-              <div className="md:col-span-4 mt-2">
+              <div className="md:col-span-3 mt-2">
                 <button type="submit" disabled={loading} className="bg-black text-white px-8 py-3 text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition disabled:opacity-50">
                   {loading ? 'Bezig...' : 'Inplannen'}
                 </button>
@@ -352,13 +360,8 @@ const AdminLessons = ({ user }) => {
                           </select>
                           {errors.instructorId && <p className="text-red-500 text-[10px] font-bold absolute bottom-0 left-0">{errors.instructorId.message}</p>}
                         </div>
-                        <div className="flex flex-col gap-1 relative pb-4">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Max Personen</label>
-                          <input type="number" min="1" max="10" {...register('maxPersons', { required: 'Verplicht', min: 1 })} className={`border px-3 py-2 text-sm focus:outline-none bg-white ${errors.maxPersons ? 'border-red-400 focus:border-red-500' : 'border-gray-300 focus:border-black'}`} />
-                          {errors.maxPersons && <p className="text-red-500 text-[10px] font-bold absolute bottom-0 left-0">{errors.maxPersons.message || 'Verplicht'}</p>}
-                        </div>
-                        {serverError && <p className="md:col-span-4 text-red-600 text-xs font-medium">{serverError}</p>}
-                        <div className="md:col-span-4 flex gap-3 mt-1">
+                        {serverError && <p className="md:col-span-3 text-red-600 text-xs font-medium">{serverError}</p>}
+                        <div className="md:col-span-3 flex gap-3 mt-1">
                           <button type="submit" disabled={loading} className="bg-black text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition disabled:opacity-50">
                             {loading ? 'Opslaan...' : 'Opslaan'}
                           </button>

@@ -22,7 +22,7 @@ export const getAllUsers = async (req, res) => {
                 isVerified: true,
                 createdAt: true,
             },
-            orderBy: { id: 'asc' }
+            orderBy: { createdAt: 'desc' }
         });
         res.json(users);
     } catch (error) {
