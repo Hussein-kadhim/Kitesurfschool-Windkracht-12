@@ -22,6 +22,7 @@ model User {
   dateOfBirth     DateTime?
   phone           String?
   bsn             String?
+  isBlocked       Boolean       @default(false)
   
   reservations    Reservation[] @relation("ClientReservations")
   assignedLessons Reservation[] @relation("InstructorReservations")

@@ -27,10 +27,10 @@ export const register = async (req, res) => {
     });
 
     if (userExists) {
-        // Om herhaaldelijk testen met je eigen Resend e-mailadres mogelijk te maken,
-        // verwijderen we de bestaande gebruiker en zijn reserveringen eerst.
-        await prisma.reservation.deleteMany({ where: { userId: userExists.id } }).catch(() => {});
-        await prisma.user.delete({ where: { id: userExists.id } }).catch(() => {});
+        if (userExists.isBlocked) {
+            return res.status(403).json({ message: "Dit e-mailadres is geblokkeerd door de beheerder en kan niet opnieuw worden geregistreerd." });
+        }
+        return res.status(400).json({ message: "Er bestaat al een account met dit e-mailadres." });
     }
 
     // Generate a secure, random temporary password because Prisma password field is non-nullable.
@@ -164,6 +164,10 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({message: "Onjuiste combinatie van e-mailadres en wachtwoord"});
 
+    if (user.isBlocked) {
+        return res.status(403).json({message: "Je account is geblokkeerd door de beheerder."});
+    }
+
     if (user.isVerified === false) {
         return res.status(403).json({message: "Je account is nog niet geactiveerd. Controleer je e-mail voor de activatielink."});
     }
@@ -184,7 +188,8 @@ export const login = async (req, res) => {
             city: user.city,
             dateOfBirth: user.dateOfBirth,
             phone: user.phone,
-            bsn: user.bsn
+            bsn: user.bsn,
+            isBlocked: user.isBlocked
         }
     });
 }
@@ -263,6 +268,40 @@ export const resetPassword = async (req, res) => {
     }
 }
 
+export const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user.id;
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) return res.status(404).json({ message: "Gebruiker niet gevonden" });
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) return res.status(400).json({ message: "Huidig wachtwoord is onjuist" });
+
+        // Strikte wachtwoordeisen
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={\[\]|\\:;"'<>,.?/-]).{12,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            return res.status(400).json({ 
+                message: "Nieuw wachtwoord moet minstens 12 tekens lang zijn en een hoofdletter, cijfer en leesteken bevatten." 
+            });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        res.json({ message: "Wachtwoord succesvol gewijzigd!" });
+    } catch (error) {
+        console.error("Change password error:", error);
+        res.status(500).json({ message: "Kon wachtwoord niet wijzigen" });
+    }
+}
+
 export const updateProfile = async (req, res) => {
     try {
         const { name, address, city, dateOfBirth, phone, bsn } = req.body;
@@ -315,7 +354,8 @@ export const getAllUsers = async (req, res) => {
                 city: true,
                 dateOfBirth: true,
                 phone: true,
-                bsn: true
+                bsn: true,
+                isBlocked: true
             },
             orderBy: { id: 'asc' }
         });

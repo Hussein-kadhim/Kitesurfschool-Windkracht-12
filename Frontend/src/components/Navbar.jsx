@@ -122,7 +122,6 @@ const Navbar = ({user, setUser}) => {
                 </button>
                 {instructeurDropdown && (
                   <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-gray-200 shadow-lg py-2 z-50">
-                    <Link to="/dashboard" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Reserveringen</Link>
                     <Link to="/admin/lessons" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Rooster</Link>
                     <Link to="/admin/users" state={{ view: 'instructeur' }} onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Klanten</Link>
                   </div>
@@ -135,6 +134,12 @@ const Navbar = ({user, setUser}) => {
         <div className='flex items-center justify-end space-x-4 lg:space-x-6 text-gray-600 font-medium'>
           {user ? (
             <>
+              {/* Toon wie is ingelogd en rol (Eis uit de PDF) */}
+              <div className="hidden lg:flex flex-col text-right mr-2 border-r border-gray-200 pr-4">
+                <span className="text-[11px] font-bold text-gray-900">{user.email}</span>
+                <span className="text-[9px] uppercase tracking-wider text-gray-500">Rol: {user.role}</span>
+              </div>
+
               {user.role === 'klant' && (
                 <Link to="/dashboard" className='hidden lg:block hover:text-primary'>Dashboard</Link>
               )}
@@ -239,7 +244,6 @@ const Navbar = ({user, setUser}) => {
               </button>
               {mobileInstructeurOpen && (
                 <div className="pl-4 border-l-2 border-gray-100 space-y-2 pb-2">
-                  <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Reserveringen</Link>
                   <Link to="/admin/lessons" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Rooster</Link>
                   <Link to="/admin/users" state={{ view: 'instructeur' }} onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Klanten</Link>
                 </div>

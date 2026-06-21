@@ -302,12 +302,6 @@ const Dashboard = ({ user }) => {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${statusCfg.classes}`}>
-                            {statusCfg.label}
-                          </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${res.hasPaid ? (res.status === 'DEFINITIEF' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700') : 'bg-gray-100 text-gray-500'}`}>
-                            {res.hasPaid ? (res.status === 'DEFINITIEF' ? 'BETAALD' : 'KLAARGEZET (CONTROLE)') : 'NIET BETAALD'}
-                          </span>
                           <span className="text-[10px] text-gray-400 font-mono">
                             #{String(res.id).padStart(4, '0')}
                           </span>
@@ -316,12 +310,6 @@ const Dashboard = ({ user }) => {
                         <h3 className="text-base font-bold text-gray-900 font-montserrat">{lessonLabel}</h3>
 
                         <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                          {userRole !== 'klant' && res.user && (
-                            <span className="flex items-center gap-1.5 font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded">
-                              <i className="fa-solid fa-user text-blue-600"></i>
-                              {res.user.name || res.user.email}
-                            </span>
-                          )}
                           <span className="flex items-center gap-1.5">
                             <i className="fa-regular fa-calendar text-gray-400"></i>
                             {formatDate(res.bookingDate)}
@@ -337,6 +325,36 @@ const Dashboard = ({ user }) => {
                             {res.price.toFixed(2)}
                           </span>
                         </div>
+                        
+                        {/* Status voor Klant */}
+                        {userRole === 'klant' && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${statusCfg.classes}`}>
+                              {statusCfg.label}
+                            </span>
+                            <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${res.hasPaid ? (res.status === 'DEFINITIEF' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700') : 'bg-gray-100 text-gray-500'}`}>
+                              {res.hasPaid ? (res.status === 'DEFINITIEF' ? 'BETAALD' : 'KLAARGEZET') : 'NIET BETAALD'}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Geboekt door sectie (Admin / Eigenaar / Instructeur) */}
+                        {userRole !== 'klant' && res.user && (
+                          <div className="mt-3 pl-3 border-l-2 border-gray-200">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Geboekt door:</p>
+                            <div className="text-xs text-gray-700 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                              <span className="font-semibold">{res.user.name || res.user.email}</span>
+                              <span className="flex items-center gap-2 mt-1 sm:mt-0">
+                                <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${res.status === 'DEFINITIEF' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                  {statusCfg.label}
+                                </span>
+                                <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${res.hasPaid ? (res.status === 'DEFINITIEF' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700') : 'bg-gray-100 text-gray-500'}`}>
+                                  {res.hasPaid ? (res.status === 'DEFINITIEF' ? 'BETAALD' : 'KLAARGEZET (CONTROLE)') : 'NIET BETAALD'}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Actieknoppen */}
@@ -406,7 +424,7 @@ const Dashboard = ({ user }) => {
                           <button
                             disabled={bezig}
                             onClick={() => markeerAlsBetaaldDoorKlant(res.id)}
-                            className="bg-primary text-white hover:bg-blue-600 transition px-4 py-2 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+                            className="border border-gray-300 text-gray-700 hover:border-black hover:text-black transition px-4 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
                             title="Geef aan dat je het bedrag hebt overgemaakt"
                           >
                             {bezig ? 'Bezig...' : 'Ik heb betaald'}
@@ -420,28 +438,12 @@ const Dashboard = ({ user }) => {
                               <button
                                 disabled={bezig}
                                 onClick={() => accepteerLes(res.id)}
-                                className="bg-green-600 text-white hover:bg-green-700 transition px-4 py-2 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+                                className="border border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 transition px-4 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
                                 title="Accepteer betaling en maak de les definitief"
                               >
                                 {bezig ? 'Bezig...' : (res.hasPaid ? 'Verifieer & Maak Definitief' : 'Accepteer Betaling')}
                               </button>
                             )}
-                            <button
-                              disabled={notifyMsg[res.id]?.loading}
-                              onClick={() => handleCancelNotify(res.id, 'ziekte')}
-                              className="border border-orange-300 text-orange-600 hover:bg-orange-50 transition px-4 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
-                              title="Stuur standaard mail: les geannuleerd wegens ziekte instructeur"
-                            >
-                              🤒 Ziekte mail
-                            </button>
-                            <button
-                              disabled={notifyMsg[res.id]?.loading}
-                              onClick={() => handleCancelNotify(res.id, 'slecht_weer')}
-                              className="border border-blue-300 text-blue-600 hover:bg-blue-50 transition px-4 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
-                              title="Stuur standaard mail: les geannuleerd wegens slecht weer"
-                            >
-                              🌧️ Slecht weer mail
-                            </button>
                           </>
                         )}
                       </div>
@@ -552,33 +554,64 @@ const Dashboard = ({ user }) => {
                       </div>
                     )}
 
-                    {/* Annuleer-reden modal (inline) */}
+                    {/* Annuleer modal (inline) */}
                     {cancelId === res.id && (
                       <div className="border-t border-red-100 bg-red-50 px-5 py-5">
-                        <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-3">Reden voor annulering <span className="text-red-500">*</span></p>
-                        <textarea
-                          className="w-full border-2 border-red-200 focus:border-red-400 focus:outline-none p-3 text-sm text-gray-800 resize-none rounded"
-                          rows={3}
-                          placeholder="Bijv. ik ben ziek geworden, persoonlijke omstandigheden..."
-                          value={cancelReason}
-                          onChange={(e) => { setCancelReason(e.target.value); setCancelError(''); }}
-                        />
-                        {cancelError && <p className="text-red-600 text-xs mt-1 font-medium">{cancelError}</p>}
-                        <div className="flex gap-3 mt-3">
-                          <button
-                            disabled={bezig}
-                            onClick={() => bevestigAnnulering(res.id)}
-                            className="bg-red-600 text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition disabled:opacity-50"
-                          >
-                            {bezig ? 'Bezig...' : 'Bevestig annulering'}
-                          </button>
-                          <button
-                            onClick={sluitCancelModal}
-                            className="border border-gray-300 text-gray-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider hover:border-black transition"
-                          >
-                            Terug
-                          </button>
-                        </div>
+                        {userRole === 'klant' ? (
+                          <>
+                            <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-3">Reden voor annulering <span className="text-red-500">*</span></p>
+                            <textarea
+                              className="w-full border-2 border-red-200 focus:border-red-400 focus:outline-none p-3 text-sm text-gray-800 resize-none rounded"
+                              rows={3}
+                              placeholder="Bijv. ik ben ziek geworden, persoonlijke omstandigheden..."
+                              value={cancelReason}
+                              onChange={(e) => { setCancelReason(e.target.value); setCancelError(''); }}
+                            />
+                            {cancelError && <p className="text-red-600 text-xs mt-1 font-medium">{cancelError}</p>}
+                            <div className="flex gap-3 mt-3">
+                              <button
+                                disabled={bezig}
+                                onClick={() => bevestigAnnulering(res.id)}
+                                className="bg-red-600 text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition disabled:opacity-50"
+                              >
+                                {bezig ? 'Bezig...' : 'Bevestig annulering'}
+                              </button>
+                              <button
+                                onClick={sluitCancelModal}
+                                className="border border-gray-300 text-gray-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider hover:border-black transition"
+                              >
+                                Terug
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-3">Les Annuleren & Verwijderen</p>
+                            <p className="text-sm text-gray-800 mb-4">Klanten die deze les geboekt hebben krijgen automatisch een annuleringsmail.</p>
+                            <div className="flex flex-wrap gap-3 mt-1">
+                              <button
+                                disabled={notifyMsg[res.id]?.loading}
+                                onClick={() => { handleCancelNotify(res.id, 'ziekte'); sluitCancelModal(); }}
+                                className="bg-red-600 text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition disabled:opacity-50"
+                              >
+                                Wegens Ziekte
+                              </button>
+                              <button
+                                disabled={notifyMsg[res.id]?.loading}
+                                onClick={() => { handleCancelNotify(res.id, 'slecht_weer'); sluitCancelModal(); }}
+                                className="bg-red-600 text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition disabled:opacity-50"
+                              >
+                                Wegens Weer (Wind &gt; 10)
+                              </button>
+                              <button
+                                onClick={sluitCancelModal}
+                                className="border border-gray-300 text-gray-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider hover:border-black transition"
+                              >
+                                Terug
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

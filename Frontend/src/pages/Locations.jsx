@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 const LOCATIES = [
   { naam: "Zandvoort", beschrijving: "Perfect voor alle niveaus met brede stranden en een gezellige sfeer.", image: "/images/locaties/zandvoort.jpg" },
+  { naam: "Muiderberg", beschrijving: "Rustiger binnenwater spot aan het IJmeer, ideaal voor beginners door vlak water en stabiele wind.", image: "/images/locaties/muiderberg.jpg" },
   { naam: "IJmuiden", beschrijving: "Ideaal voor de meer ervaren kitesurfers met een robuuste kustlijn.", image: "/images/locaties/ijmuiden.jpg" },
   { naam: "Wijk aan Zee", beschrijving: "Een van de beste spots in Nederland met geweldige golven en wind.", image: "/images/locaties/wijk-aan-zee.jpg" },
   { naam: "Scheveningen", beschrijving: "Druk, gezellig en ideaal om na het kitesurfen te genieten op het terras.", image: "/images/locaties/scheveningen.jpeg" },

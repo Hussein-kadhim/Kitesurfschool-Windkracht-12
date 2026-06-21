@@ -95,7 +95,7 @@ const AdminUsers = ({ user }) => {
   });
 
   const openEdit = (u) => {
-    setEditId(u.id); setEditServerError(''); setExpandedId(null);
+    setEditId(u.id); setEditServerError(''); setExpandedId(null); setDeleteId(null);
     resetEdit({
       name:        u.name || '', email: u.email || '', role: u.role || 'klant',
       phone:       u.phone || '', dateOfBirth: u.dateOfBirth ? u.dateOfBirth.split('T')[0] : '',
@@ -123,14 +123,44 @@ const AdminUsers = ({ user }) => {
     finally { setAddLoading(false); }
   };
 
+  const [errorMessage, setErrorMessage] = useState('');
+  const showError = (msg) => {
+    setErrorMessage(msg);
+    setTimeout(() => setErrorMessage(''), 5000);
+  };
+
   const confirmDelete = async (id) => {
     setDeleteLoading(true);
     try {
       await axios.delete(`/api/gebruikers/${id}`);
       setUsers((prev) => prev.filter((x) => x.id !== id));
       setDeleteId(null); showSuccess('Gebruiker verwijderd.');
-    } catch (err) { alert(err.response?.data?.message || 'Verwijderen mislukt.'); } 
+    } catch (err) { showError(err.response?.data?.message || 'Verwijderen mislukt.'); } 
     finally { setDeleteLoading(false); }
+  };
+
+  const handlePromote = async (id, currentRole) => {
+    if (currentRole === 'instructeur') {
+      showError("Rol al aangepast");
+      return;
+    }
+    try {
+      const res = await axios.put(`/api/gebruikers/${id}`, { role: 'instructeur' });
+      setUsers((prev) => prev.map((x) => (x.id === id ? res.data : x)));
+      showSuccess('Gebruiker is gepromoveerd tot instructeur!');
+    } catch (err) { 
+      showError(err.response?.data?.message || 'Promoveren mislukt.'); 
+    }
+  };
+
+  const handleBlock = async (id, isBlocked) => {
+    try {
+      const res = await axios.put(`/api/gebruikers/${id}`, { isBlocked: !isBlocked });
+      setUsers((prev) => prev.map((x) => (x.id === id ? res.data : x)));
+      showSuccess(`Gebruiker is succesvol ${!isBlocked ? 'geblokkeerd' : 'gedeblokkeerd'}.`);
+    } catch (err) {
+      showError(err.response?.data?.message || 'Actie mislukt. Zorg dat je de database geüpdatet hebt.');
+    }
   };
 
   const roleCounts = {
@@ -163,6 +193,12 @@ const AdminUsers = ({ user }) => {
         {successMsg && (
           <div className="flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 px-4 py-3 text-sm font-medium">
             <i className="fa-solid fa-circle-check text-green-500" /> {successMsg}
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm font-medium">
+            <i className="fa-solid fa-triangle-exclamation text-red-500" /> {errorMessage}
           </div>
         )}
 
@@ -228,6 +264,7 @@ const AdminUsers = ({ user }) => {
                 openEdit={openEdit} confirmDelete={confirmDelete} deleteLoading={deleteLoading}
                 registerEdit={registerEdit} handleEditSubmit={handleEditSubmit} onEditSubmit={onEditSubmit}
                 editErrors={editErrors} editRole={editRole} editLoading={editLoading} editServerError={editServerError}
+                handlePromote={handlePromote} handleBlock={handleBlock}
               />
             ))}
           </div>

@@ -47,6 +47,7 @@ const Reservation = ({ user, globalError }) => {
   
   const LOCATIES = [
     "Zandvoort",
+    "Muiderberg",
     "IJmuiden",
     "Wijk aan Zee",
     "Scheveningen",
