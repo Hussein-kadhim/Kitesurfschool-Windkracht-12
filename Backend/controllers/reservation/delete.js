@@ -24,7 +24,10 @@ export const deleteReservation = async (req, res) => {
     // Haal de reservering + gebruiker op voor de email
     const reservering = await prisma.reservation.findUnique({
       where: { id: parseInt(id) },
-      include: { user: { select: { name: true, email: true } } },
+      include: { 
+        user: { select: { name: true, email: true } },
+        instructor: { select: { name: true, email: true } }
+      },
     });
 
     if (!reservering)
@@ -69,8 +72,36 @@ export const deleteReservation = async (req, res) => {
         `,
       });
     } catch (emailError) {
-      console.error("Fout bij verzenden annuleringsmail:", emailError);
+      console.error("Fout bij verzenden annuleringsmail naar klant:", emailError);
       // Email fout stopt de annulering niet
+    }
+
+    // Stuur annuleringsmail naar de instructeur (als er een is)
+    if (reservering.instructor?.email) {
+      try {
+        await resend.emails.send({
+          from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+          to: reservering.instructor.email,
+          subject: `Reservering verwijderd - Klant: ${reservering.user.name}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+              <h2 style="color: #111;">Reservering Verwijderd</h2>
+              <p>Beste ${reservering.instructor.name},</p>
+              <p>Klant <strong>${reservering.user.name}</strong> heeft de les zojuist geannuleerd/verwijderd.</p>
+              <div style="background-color: #f5f5f0; padding: 15px; margin: 20px 0; border-left: 4px solid #111;">
+                <ul style="list-style: none; padding-left: 0; margin: 0;">
+                  <li style="margin-bottom: 8px;"><strong>Klant:</strong> ${reservering.user.name}</li>
+                  <li style="margin-bottom: 8px;"><strong>Les:</strong> ${lesNaam}</li>
+                  <li style="margin-bottom: 8px;"><strong>Datum:</strong> ${datum}</li>
+                </ul>
+              </div>
+              <p>Met vriendelijke groet,<br><br><strong>Systeem Windkracht-12</strong></p>
+            </div>
+          `,
+        });
+      } catch (emailError) {
+        console.error("Fout bij verzenden annuleringsmail naar instructeur:", emailError);
+      }
     }
 
     res.json({ message: "Reservering succesvol geannuleerd!" });

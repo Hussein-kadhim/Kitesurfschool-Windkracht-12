@@ -9,15 +9,25 @@ export const getAllReservations = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        let whereClause = {
+            bookingDate: { gte: today }
+        };
+
+        if (req.user.role === 'user') {
+            whereClause.userId = req.user.id;
+        } else if (req.user.role === 'instructeur') {
+            whereClause.instructorId = req.user.id;
+        }
+        // Eigenaar ziet alles, dus we voegen geen userId filter toe
+
         const reservations = await prisma.reservation.findMany({
-            where: { 
-                userId: req.user.id,
-                bookingDate: {
-                    gte: today
-                }
-            },
+            where: whereClause,
             orderBy: {
                 bookingDate: "asc"
+            },
+            include: { 
+              instructor: { select: { name: true, email: true } },
+              user: { select: { name: true, email: true } }
             }
         });
         res.json(reservations);

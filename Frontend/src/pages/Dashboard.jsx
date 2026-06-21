@@ -32,8 +32,12 @@ const Dashboard = ({ user }) => {
   const [nieuweDatum, setNieuweDatum]   = useState(null);
   const [cancelId, setCancelId]         = useState(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [wijzigReason, setWijzigReason] = useState('');
   const [cancelError, setCancelError]   = useState('');
   const [notifyMsg, setNotifyMsg]       = useState({});
+  const [filterType, setFilterType]     = useState('ALL');
+
+  const userRole = user?.role?.toLowerCase();
 
   useEffect(() => {
     const fetchReservations = async () => {
@@ -105,24 +109,48 @@ const Dashboard = ({ user }) => {
   const annuleerWijziging = () => {
     setWijzigId(null);
     setNieuweDatum(null);
+    setWijzigReason('');
+    setCancelError('');
   };
 
   const bevestigWijziging = async (id) => {
     if (!nieuweDatum) return;
+    if (!wijzigReason.trim()) {
+      setCancelError('Vul een reden in voor de wijziging.');
+      return;
+    }
     setActiefId(id);
     try {
       const res = await axios.put(`/api/reservations/${id}`, {
         bookingDate: nieuweDatum.toISOString(),
+        wijzigReason: wijzigReason.trim(),
       });
       setReservations(prev => prev.map(r => r.id === id ? res.data : r));
       setWijzigId(null);
       setNieuweDatum(null);
+      setWijzigReason('');
     } catch (err) {
       alert(err.response?.data?.message || 'Wijzigen mislukt. Probeer het opnieuw.');
     } finally {
       setActiefId(null);
     }
   };
+
+  const accepteerLes = async (id) => {
+    setActiefId(id);
+    try {
+      const res = await axios.put(`/api/reservations/${id}`, {
+        status: 'DEFINITIEF'
+      });
+      setReservations(prev => prev.map(r => r.id === id ? res.data : r));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Kon de les niet accepteren.');
+    } finally {
+      setActiefId(null);
+    }
+  };
+
+  const filteredReservations = reservations;
 
   return (
     <div className="min-h-screen bg-cream py-12 px-6">
@@ -138,9 +166,12 @@ const Dashboard = ({ user }) => {
 
         {/* Reserveringen */}
         <div>
-          <h2 className="text-xl font-bold font-montserrat text-gray-900 mb-4 pb-2 border-b border-gray-200">
-            Mijn Reserveringen
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-2 border-b border-gray-200">
+            <h2 className="text-xl font-bold font-montserrat text-gray-900">
+              Mijn Reserveringen
+            </h2>
+            {/* Filter knoppen (verwijderd voor nu) */}
+          </div>
 
           {loading && (
             <div className="space-y-3">
@@ -169,19 +200,24 @@ const Dashboard = ({ user }) => {
           )}
 
           {/* UNHAPPY */}
-          {!loading && !error && reservations.length === 0 && (
+          {!loading && !error && filteredReservations.length === 0 && (
             <div className="py-4">
-              <p className="text-gray-600 text-sm mb-3">Je hebt nog geen reserveringen.</p>
-              <Link to="/pakketten" className="text-sm font-semibold text-gray-900 underline underline-offset-2 hover:text-primary transition">
-                Bekijk onze pakketten →
-              </Link>
+              <p className="text-gray-600 text-sm mb-3">
+                Je hebt nog geen reserveringen.
+              </p>
+              {/* userRole === 'klant' is de klant rol in db */}
+              {userRole === 'klant' && (
+                <Link to="/pakketten" className="text-sm font-semibold text-gray-900 underline underline-offset-2 hover:text-primary transition">
+                  Bekijk onze pakketten →
+                </Link>
+              )}
             </div>
           )}
 
           {/* HAPPY */}
-          {!loading && !error && reservations.length > 0 && (
+          {!loading && !error && filteredReservations.length > 0 && (
             <div className="space-y-4">
-              {reservations.map((res) => {
+              {filteredReservations.map((res) => {
                 const statusCfg   = STATUS_CONFIG[res.status] || STATUS_CONFIG.VOORLOPIG;
                 const lessonLabel = LESSON_LABELS[res.lesson] || res.lesson;
                 const isOpen      = expanded === res.id;
@@ -207,6 +243,12 @@ const Dashboard = ({ user }) => {
                         <h3 className="text-base font-bold text-gray-900 font-montserrat">{lessonLabel}</h3>
 
                         <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                          {userRole !== 'klant' && res.user && (
+                            <span className="flex items-center gap-1.5 font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded">
+                              <i className="fa-solid fa-user text-blue-600"></i>
+                              {res.user.name || res.user.email}
+                            </span>
+                          )}
                           <span className="flex items-center gap-1.5">
                             <i className="fa-regular fa-calendar text-gray-400"></i>
                             {formatDate(res.bookingDate)}
@@ -256,8 +298,18 @@ const Dashboard = ({ user }) => {
                         )}
 
                         {/* Knoppen voor instructeur & eigenaar */}
-                        {!geannuleerd && (user?.role === 'eigenaar' || user?.role === 'instructeur') && (
+                        {!geannuleerd && (userRole === 'eigenaar' || userRole === 'admin' || userRole === 'instructeur') && (
                           <>
+                            {res.status !== 'DEFINITIEF' && (
+                              <button
+                                disabled={bezig}
+                                onClick={() => accepteerLes(res.id)}
+                                className="bg-green-600 text-white hover:bg-green-700 transition px-4 py-2 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+                                title="Accepteer de les (maak definitief)"
+                              >
+                                {bezig ? 'Bezig...' : 'Accepteer Les'}
+                              </button>
+                            )}
                             <button
                               disabled={notifyMsg[res.id]?.loading}
                               onClick={() => handleCancelNotify(res.id, 'ziekte')}
@@ -308,17 +360,28 @@ const Dashboard = ({ user }) => {
                           />
                         </div>
                         {nieuweDatum && (
-                          <div className="mt-4 flex items-center gap-3">
-                            <p className="text-sm text-gray-700">
-                              Nieuwe datum: <span className="font-semibold">{formatDate(nieuweDatum)}</span>
-                            </p>
-                            <button
-                              disabled={bezig}
-                              onClick={() => bevestigWijziging(res.id)}
-                              className="bg-black text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition disabled:opacity-50"
-                            >
-                              {bezig ? 'Opslaan...' : 'Bevestig'}
-                            </button>
+                          <div className="mt-4">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Reden voor wijziging <span className="text-red-500">*</span></p>
+                            <textarea
+                              className="w-full border-2 border-gray-200 focus:border-black focus:outline-none p-3 text-sm text-gray-800 resize-none rounded mb-1"
+                              rows={2}
+                              placeholder="Bijv. Te veel wind, op verzoek van de klant..."
+                              value={wijzigReason}
+                              onChange={(e) => { setWijzigReason(e.target.value); setCancelError(''); }}
+                            />
+                            {cancelError && <p className="text-red-600 text-xs mt-1 mb-2 font-medium">{cancelError}</p>}
+                            <div className="flex items-center gap-3 mt-2">
+                              <p className="text-sm text-gray-700">
+                                Nieuwe datum: <span className="font-semibold">{formatDate(nieuweDatum)}</span>
+                              </p>
+                              <button
+                                disabled={bezig}
+                                onClick={() => bevestigWijziging(res.id)}
+                                className="bg-black text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition disabled:opacity-50"
+                              >
+                                {bezig ? 'Opslaan...' : 'Bevestig'}
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -350,6 +413,12 @@ const Dashboard = ({ user }) => {
                               <p className="font-medium mt-0.5">{res.location}</p>
                             </div>
                           )}
+                          {res.instructor && (
+                            <div>
+                              <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Instructeur</span>
+                              <p className="font-medium mt-0.5">{res.instructor.name || res.instructor.email}</p>
+                            </div>
+                          )}
                           {res.duoName && (
                             <div className="col-span-1 sm:col-span-2 border-t border-gray-100 pt-2 mt-1">
                               <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Gegevens Duo-partner</span>
@@ -357,16 +426,6 @@ const Dashboard = ({ user }) => {
                               <p className="text-xs text-gray-500 mt-0.5">{res.duoAddress}, {res.duoCity}</p>
                             </div>
                           )}
-                          <div>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Betaald</span>
-                            <p className={`font-medium mt-0.5 flex items-center gap-1 ${res.hasPaid ? 'text-green-700' : 'text-red-600'}`}>
-                              {res.hasPaid ? (
-                                <>Ja <i className="fa-solid fa-check"></i></>
-                              ) : (
-                                'Nee, nog niet betaald'
-                              )}
-                            </p>
-                          </div>
                           {res.cancelReason && (
                             <div className="col-span-2">
                               <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Reden annulering</span>

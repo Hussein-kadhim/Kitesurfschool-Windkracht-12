@@ -25,6 +25,7 @@ model User {
   
   reservations    Reservation[] @relation("ClientReservations")
   assignedLessons Reservation[] @relation("InstructorReservations")
+  schedules       LessonSchedule[] @relation("InstructorSchedule")
 
   @@map("users")
 }
@@ -61,4 +62,18 @@ enum LessonType {
   LOSSE_DUO_LES
   DUO_PAKKET_3
   DUO_PAKKET_5
+}
+
+model LessonSchedule {
+  id           Int      @id @default(autoincrement())
+  date         DateTime
+  time         String
+  instructorId Int      @map("instructor_id")
+  instructor   User     @relation("InstructorSchedule", fields: [instructorId], references: [id])
+  maxPersons   Int      @default(2) @map("max_persons")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  @@unique([date, time, instructorId])
+  @@map("lesson_schedules")
 }

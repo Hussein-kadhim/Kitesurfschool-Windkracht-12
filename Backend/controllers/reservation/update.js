@@ -52,9 +52,6 @@ export const updateReservation = async (req, res) => {
 
         if (typeof hasPaid === 'boolean') {
             updateData.hasPaid = hasPaid;
-            if (hasPaid === true && (!status || status !== "GEANNULEERD")) {
-                updateData.status = "DEFINITIEF";
-            }
         }
 
         // Sla de annuleringsreden op als meegegeven
@@ -72,60 +69,62 @@ export const updateReservation = async (req, res) => {
             weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
         });
 
-        // --- Stuur e-mails bij annulering door klant ---
+        // --- Stuur e-mails bij annulering ---
         if (updateData.status === 'GEANNULEERD') {
             const reden = updateData.cancelReason || cancelReason || 'Geen reden opgegeven';
 
-            // Mail 1: bevestiging aan de klant
+            // Mail 1: Bericht aan de klant
             try {
                 await resend.emails.send({
                     from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
                     to: bestaand.user.email,
-                    subject: 'Annulering ontvangen - Kitesurfschool Windkracht-12',
+                    subject: 'Les Geannuleerd - Kitesurfschool Windkracht-12',
                     html: `
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                            <h2 style="color: #c0392b;">Annulering ontvangen</h2>
+                            <h2 style="color: #c0392b;">Les Geannuleerd</h2>
                             <p>Beste ${bestaand.user.name},</p>
-                            <p>We hebben je annulering ontvangen en verwerkt.</p>
+                            <p>De onderstaande kitesurfles is helaas geannuleerd.</p>
                             <div style="background-color: #fff5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #c0392b;">
                                 <ul style="list-style: none; padding-left: 0; margin: 0;">
                                     <li style="margin-bottom: 8px;"><strong>Les:</strong> ${lesNaam}</li>
                                     <li style="margin-bottom: 8px;"><strong>Datum:</strong> ${lesDatum}</li>
-                                    <li style="margin-bottom: 8px;"><strong>Jouw reden:</strong> ${reden}</li>
+                                    <li style="margin-bottom: 8px;"><strong>Reden van annulering:</strong> ${reden}</li>
                                 </ul>
                             </div>
-                            <p>Heb je vragen? Neem dan contact op met ons via de website.</p>
+                            <p>Neem gerust contact met ons op via de website voor meer informatie of om een nieuwe les in te plannen.</p>
                             <p>Met vriendelijke groet,<br><br><strong>Team Windkracht-12</strong></p>
                         </div>
                     `,
                 });
             } catch (e) { console.error("Fout annuleringsmail klant:", e); }
 
-            // Mail 2: melding aan de eigenaar
-            const ownerEmail = process.env.OWNER_EMAIL || process.env.EMAIL_FROM || 'onboarding@resend.dev';
-            try {
-                await resend.emails.send({
-                    from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
-                    to: ownerEmail,
-                    subject: `Klant heeft les geannuleerd - ${bestaand.user.name}`,
-                    html: `
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                            <h2 style="color: #c0392b;">Les geannuleerd door klant</h2>
-                            <p>Een klant heeft een les geannuleerd. Hieronder de details:</p>
-                            <div style="background-color: #fff5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #c0392b;">
-                                <ul style="list-style: none; padding-left: 0; margin: 0;">
-                                    <li style="margin-bottom: 8px;"><strong>Klant:</strong> ${bestaand.user.name} (${bestaand.user.email})</li>
-                                    <li style="margin-bottom: 8px;"><strong>Les:</strong> ${lesNaam}</li>
-                                    <li style="margin-bottom: 8px;"><strong>Datum:</strong> ${lesDatum}</li>
-                                    <li style="margin-bottom: 8px;"><strong>Reden:</strong> ${reden}</li>
-                                </ul>
+            // Mail 2: Bericht aan de instructeur (als die gekoppeld is)
+            if (bestaand.instructor?.email) {
+                try {
+                    await resend.emails.send({
+                        from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+                        to: bestaand.instructor.email,
+                        subject: `Geannuleerde Les - Klant: ${bestaand.user.name}`,
+                        html: `
+                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                                <h2 style="color: #c0392b;">Les Geannuleerd</h2>
+                                <p>Beste ${bestaand.instructor.name},</p>
+                                <p>Klant <strong>${bestaand.user.name}</strong> heeft de les zojuist geannuleerd met als reden: <em>${reden}</em></p>
+                                <div style="background-color: #fff5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #c0392b;">
+                                    <ul style="list-style: none; padding-left: 0; margin: 0;">
+                                        <li style="margin-bottom: 8px;"><strong>Klant:</strong> ${bestaand.user.name} (${bestaand.user.email})</li>
+                                        <li style="margin-bottom: 8px;"><strong>Les:</strong> ${lesNaam}</li>
+                                        <li style="margin-bottom: 8px;"><strong>Datum:</strong> ${lesDatum}</li>
+                                        <li style="margin-bottom: 8px;"><strong>Reden:</strong> ${reden}</li>
+                                    </ul>
+                                </div>
+                                <p>Je agenda is bijgewerkt.</p>
+                                <p>Met vriendelijke groet,<br><br><strong>Systeem Windkracht-12</strong></p>
                             </div>
-                            <p>Log in op het dashboard om de reservering te beheren.</p>
-                            <p>Met vriendelijke groet,<br><br><strong>Systeem Windkracht-12</strong></p>
-                        </div>
-                    `,
-                });
-            } catch (e) { console.error("Fout annuleringsmail eigenaar:", e); }
+                        `,
+                    });
+                } catch (e) { console.error("Fout annuleringsmail instructeur:", e); }
+            }
         }
 
 
@@ -136,6 +135,7 @@ export const updateReservation = async (req, res) => {
             const nieuweDatum = new Date(updateData.bookingDate).toLocaleDateString('nl-NL', {
                 weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
             });
+            const redenWijziging = req.body.wijzigReason || 'Geen specifieke reden opgegeven.';
 
             try {
                 await resend.emails.send({
@@ -152,6 +152,7 @@ export const updateReservation = async (req, res) => {
                                     <li style="margin-bottom: 8px;"><strong>Les:</strong> ${lesNaam}</li>
                                     <li style="margin-bottom: 8px;"><strong>Oude datum:</strong> <span style="text-decoration: line-through; color: #999;">${oudeDatum}</span></li>
                                     <li style="margin-bottom: 8px;"><strong>Nieuwe datum:</strong> ${nieuweDatum}</li>
+                                    <li style="margin-bottom: 8px;"><strong>Reden:</strong> ${redenWijziging}</li>
                                     <li style="margin-bottom: 8px;"><strong>Bedrag:</strong> €${bestaand.price.toFixed(2)}</li>
                                 </ul>
                             </div>
@@ -160,7 +161,36 @@ export const updateReservation = async (req, res) => {
                     `,
                 });
             } catch (emailError) {
-                console.error("Fout bij verzenden wijzigingsmail:", emailError);
+                console.error("Fout bij verzenden wijzigingsmail naar klant:", emailError);
+            }
+
+            if (bestaand.instructor?.email) {
+                try {
+                    await resend.emails.send({
+                        from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+                        to: bestaand.instructor.email,
+                        subject: `Reservering gewijzigd - Klant: ${bestaand.user.name}`,
+                        html: `
+                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                                <h2 style="color: #111;">Reservering gewijzigd</h2>
+                                <p>Beste ${bestaand.instructor.name},</p>
+                                <p>De datum van een les in je agenda is zojuist gewijzigd door de klant of de eigenaar.</p>
+                                <div style="background-color: #f5f5f0; padding: 15px; margin: 20px 0; border-left: 4px solid #111;">
+                                    <ul style="list-style: none; padding-left: 0; margin: 0;">
+                                        <li style="margin-bottom: 8px;"><strong>Klant:</strong> ${bestaand.user.name}</li>
+                                        <li style="margin-bottom: 8px;"><strong>Les:</strong> ${lesNaam}</li>
+                                        <li style="margin-bottom: 8px;"><strong>Oude datum:</strong> <span style="text-decoration: line-through; color: #999;">${oudeDatum}</span></li>
+                                        <li style="margin-bottom: 8px;"><strong>Nieuwe datum:</strong> ${nieuweDatum}</li>
+                                        <li style="margin-bottom: 8px;"><strong>Reden:</strong> ${redenWijziging}</li>
+                                    </ul>
+                                </div>
+                                <p>Met vriendelijke groet,<br><br><strong>Systeem Windkracht-12</strong></p>
+                            </div>
+                        `,
+                    });
+                } catch (emailError) {
+                    console.error("Fout bij verzenden wijzigingsmail naar instructeur:", emailError);
+                }
             }
         }
 
@@ -198,32 +228,7 @@ export const updateReservation = async (req, res) => {
                 });
             } catch (e) { console.error("Fout klantmail DEFINITIEF:", e); }
 
-            // Mail ook naar instructeur als er een is
-            if (bestaand.instructor?.email) {
-                const instructeurHtml = `
-                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                        <h2 style="color: #005B96;">Nieuwe bevestigde les</h2>
-                        <p>Beste ${bestaand.instructor.name},</p>
-                        <p>De betaling van je klant is ontvangen. De volgende les is definitief bevestigd:</p>
-                        <div style="background-color: #f0f7ff; padding: 15px; margin: 20px 0; border-left: 4px solid #005B96;">
-                            <ul style="list-style: none; padding-left: 0; margin: 0;">
-                                <li style="margin-bottom: 8px;"><strong>Klant:</strong> ${bestaand.user.name}</li>
-                                <li style="margin-bottom: 8px;"><strong>Les:</strong> ${lesNaam}</li>
-                                <li style="margin-bottom: 8px;"><strong>Datum:</strong> ${bevestigingsDatum}</li>
-                            </ul>
-                        </div>
-                        <p>Met sportieve groet,<br><br><strong>Team Windkracht-12</strong></p>
-                    </div>
-                `;
-                try {
-                    await resend.emails.send({
-                        from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
-                        to: bestaand.instructor.email,
-                        subject: 'Bevestigde les - Kitesurfschool Windkracht-12',
-                        html: instructeurHtml,
-                    });
-                } catch (e) { console.error("Fout instructeurmail DEFINITIEF:", e); }
-            }
+            // Mail 2: Geen mail meer naar de instructeur om spam te voorkomen
         }
 
         res.json(reservation);
