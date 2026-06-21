@@ -1,8 +1,6 @@
 import "dotenv/config";
 import { prisma } from "../../lib/prisma.js";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "../../lib/mailer.js";
 
 const LESSON_LABELS = {
   PRIVE_LES:      'Privéles',
@@ -70,13 +68,12 @@ export const updateReservation = async (req, res) => {
         });
 
         // --- Stuur e-mails bij annulering ---
-        if (updateData.status === 'GEANNULEERD') {
+        if (updateData.status === 'GEANNULEERD' && bestaand.status !== 'GEANNULEERD') {
             const reden = updateData.cancelReason || cancelReason || 'Geen reden opgegeven';
 
             // Mail 1: Bericht aan de klant
             try {
-                await resend.emails.send({
-                    from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+                await sendEmail({
                     to: bestaand.user.email,
                     subject: 'Les Geannuleerd - Kitesurfschool Windkracht-12',
                     html: `
@@ -101,8 +98,7 @@ export const updateReservation = async (req, res) => {
             // Mail 2: Bericht aan de instructeur (als die gekoppeld is)
             if (bestaand.instructor?.email) {
                 try {
-                    await resend.emails.send({
-                        from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+                    await sendEmail({
                         to: bestaand.instructor.email,
                         subject: `Geannuleerde Les - Klant: ${bestaand.user.name}`,
                         html: `
@@ -125,10 +121,40 @@ export const updateReservation = async (req, res) => {
                     });
                 } catch (e) { console.error("Fout annuleringsmail instructeur:", e); }
             }
+
+            // Mail 3: Bericht aan de eigenaar(en)
+            try {
+                const eigenaren = await prisma.user.findMany({ where: { role: 'eigenaar' } });
+                for (const eigenaar of eigenaren) {
+                    if (eigenaar.email) {
+                        await sendEmail({
+                            to: eigenaar.email,
+                            subject: `Geannuleerde Les - Klant: ${bestaand.user.name}`,
+                            html: `
+                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                                    <h2 style="color: #c0392b;">Les Geannuleerd door Klant</h2>
+                                    <p>Beste ${eigenaar.name || 'Eigenaar'},</p>
+                                    <p>Klant <strong>${bestaand.user.name}</strong> heeft de les zojuist geannuleerd met als reden: <em>${reden}</em></p>
+                                    <div style="background-color: #fff5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #c0392b;">
+                                        <ul style="list-style: none; padding-left: 0; margin: 0;">
+                                            <li style="margin-bottom: 8px;"><strong>Klant:</strong> ${bestaand.user.name} (${bestaand.user.email})</li>
+                                            <li style="margin-bottom: 8px;"><strong>Instructeur:</strong> ${bestaand.instructor?.name || 'Onbekend'}</li>
+                                            <li style="margin-bottom: 8px;"><strong>Les:</strong> ${lesNaam}</li>
+                                            <li style="margin-bottom: 8px;"><strong>Datum:</strong> ${lesDatum}</li>
+                                            <li style="margin-bottom: 8px;"><strong>Reden:</strong> ${reden}</li>
+                                        </ul>
+                                    </div>
+                                    <p>Met vriendelijke groet,<br><br><strong>Systeem Windkracht-12</strong></p>
+                                </div>
+                            `,
+                        });
+                    }
+                }
+            } catch (e) { console.error("Fout annuleringsmail eigenaar:", e); }
         }
 
 
-        if (bookingDate) {
+        if (updateData.bookingDate && new Date(bestaand.bookingDate).getTime() !== updateData.bookingDate.getTime()) {
             const oudeDatum = new Date(bestaand.bookingDate).toLocaleDateString('nl-NL', {
                 weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
             });
@@ -138,8 +164,7 @@ export const updateReservation = async (req, res) => {
             const redenWijziging = req.body.wijzigReason || 'Geen specifieke reden opgegeven.';
 
             try {
-                await resend.emails.send({
-                    from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+                await sendEmail({
                     to: bestaand.user.email,
                     subject: 'Reservering gewijzigd - Kitesurfschool Windkracht-12',
                     html: `
@@ -166,8 +191,7 @@ export const updateReservation = async (req, res) => {
 
             if (bestaand.instructor?.email) {
                 try {
-                    await resend.emails.send({
-                        from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+                    await sendEmail({
                         to: bestaand.instructor.email,
                         subject: `Reservering gewijzigd - Klant: ${bestaand.user.name}`,
                         html: `
@@ -192,10 +216,41 @@ export const updateReservation = async (req, res) => {
                     console.error("Fout bij verzenden wijzigingsmail naar instructeur:", emailError);
                 }
             }
+
+            // Mail 3: Bericht aan de eigenaar(en)
+            try {
+                const eigenaren = await prisma.user.findMany({ where: { role: 'eigenaar' } });
+                for (const eigenaar of eigenaren) {
+                    if (eigenaar.email) {
+                        await sendEmail({
+                            to: eigenaar.email,
+                            subject: `Reservering gewijzigd - Klant: ${bestaand.user.name}`,
+                            html: `
+                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                                    <h2 style="color: #111;">Reservering gewijzigd door Klant</h2>
+                                    <p>Beste ${eigenaar.name || 'Eigenaar'},</p>
+                                    <p>De datum van een reservering is zojuist gewijzigd door de klant.</p>
+                                    <div style="background-color: #f5f5f0; padding: 15px; margin: 20px 0; border-left: 4px solid #111;">
+                                        <ul style="list-style: none; padding-left: 0; margin: 0;">
+                                            <li style="margin-bottom: 8px;"><strong>Klant:</strong> ${bestaand.user.name}</li>
+                                            <li style="margin-bottom: 8px;"><strong>Instructeur:</strong> ${bestaand.instructor?.name || 'Onbekend'}</li>
+                                            <li style="margin-bottom: 8px;"><strong>Les:</strong> ${lesNaam}</li>
+                                            <li style="margin-bottom: 8px;"><strong>Oude datum:</strong> <span style="text-decoration: line-through; color: #999;">${oudeDatum}</span></li>
+                                            <li style="margin-bottom: 8px;"><strong>Nieuwe datum:</strong> ${nieuweDatum}</li>
+                                            <li style="margin-bottom: 8px;"><strong>Reden:</strong> ${redenWijziging}</li>
+                                        </ul>
+                                    </div>
+                                    <p>Met vriendelijke groet,<br><br><strong>Systeem Windkracht-12</strong></p>
+                                </div>
+                            `,
+                        });
+                    }
+                }
+            } catch (e) { console.error("Fout wijzigingsmail eigenaar:", e); }
         }
 
         // --- Stuur bevestigingsmail naar klant ÉN instructeur als status DEFINITIEF wordt ---
-        if (updateData.status === "DEFINITIEF") {
+        if (updateData.status === "DEFINITIEF" && bestaand.status !== "DEFINITIEF") {
             const bevestigingsDatum = new Date(bestaand.bookingDate).toLocaleDateString('nl-NL', {
                 weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
             });
@@ -220,8 +275,7 @@ export const updateReservation = async (req, res) => {
             `;
 
             try {
-                await resend.emails.send({
-                    from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+                await sendEmail({
                     to: bestaand.user.email,
                     subject: 'Bevestiging: Je kitesurflessen gaan door! - Windkracht-12',
                     html: clientHtml,
@@ -247,8 +301,7 @@ export const updateReservation = async (req, res) => {
                 `;
 
                 try {
-                    await resend.emails.send({
-                        from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+                    await sendEmail({
                         to: bestaand.instructor.email,
                         subject: 'Nieuwe Definitieve Reservering - Windkracht-12',
                         html: instructorHtml,
