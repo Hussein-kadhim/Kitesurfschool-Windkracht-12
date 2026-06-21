@@ -6,9 +6,9 @@ import 'react-calendar/dist/Calendar.css';
 
 const LESSON_LABELS = {
   PRIVE_LES: 'Privéles',
-  DUO_LES: 'Losse Duo Kiteles',
-  GROEPSLES: 'Duo Lespakket 3 Lessen',
-  GROEPSLES_5_LESSEN: 'Duo Lespakket 5 Lessen',
+  LOSSE_DUO_LES: 'Losse Duo Kiteles',
+  DUO_PAKKET_3: 'Duo Lespakket 3 Lessen',
+  DUO_PAKKET_5: 'Duo Lespakket 5 Lessen',
 };
 
 const STATUS_CONFIG = {
@@ -30,7 +30,15 @@ const Dashboard = ({ user }) => {
   const [actiefId, setActiefId]         = useState(null);
   const [wijzigId, setWijzigId]         = useState(null);
   const [nieuweDatum, setNieuweDatum]   = useState(null);
-  const [confirmId, setConfirmId]       = useState(null); // inline bevestiging
+  const [cancelId, setCancelId]         = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [wijzigReason, setWijzigReason] = useState('');
+  const [cancelError, setCancelError]   = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [notifyMsg, setNotifyMsg]       = useState({});
+  const [filterType, setFilterType]     = useState('ALL');
+
+  const userRole = user?.role?.toLowerCase();
 
   useEffect(() => {
     const fetchReservations = async () => {
@@ -46,22 +54,66 @@ const Dashboard = ({ user }) => {
     if (user) fetchReservations();
   }, [user]);
 
-  // Annuleer (verwijder) 
-  const handleAnnuleer = async (id) => {
+  // Annuleer met reden
+  const openCancelModal = (id) => {
+    setCancelId(id);
+    setCancelReason('');
+    setCancelError('');
+    setExpanded(null);
+    setWijzigId(null);
+  };
+
+  const sluitCancelModal = () => {
+    setCancelId(null);
+    setCancelReason('');
+    setCancelError('');
+  };
+
+  // Stuur ziekte/slecht-weer mail (eigenaar & instructeur)
+  const handleCancelNotify = async (id, type) => {
+    setNotifyMsg(prev => ({ ...prev, [id]: { loading: true } }));
+    try {
+      const res = await axios.post(`/api/reservations/${id}/cancel-notify`, { type });
+      setNotifyMsg(prev => ({ ...prev, [id]: { success: res.data.message } }));
+    } catch (err) {
+      setNotifyMsg(prev => ({ ...prev, [id]: { error: err.response?.data?.message || 'Mail versturen mislukt.' } }));
+    }
+  };
+
+  const bevestigAnnulering = async (id) => {
+    if (!cancelReason.trim()) {
+      setCancelError('Vul een reden in voor de annulering.');
+      return;
+    }
     setActiefId(id);
     try {
-      await axios.delete(`/api/reservations/${id}`);
-      setReservations(prev => prev.filter(r => r.id !== id));
-      setExpanded(null);
-      setConfirmId(null);
+      const res = await axios.put(`/api/reservations/${id}`, {
+        status: 'GEANNULEERD',
+        cancelReason: cancelReason.trim(),
+      });
+      setReservations(prev => prev.map(r => r.id === id ? res.data : r));
+      sluitCancelModal();
     } catch (err) {
-      alert(err.response?.data?.message || 'Annuleren mislukt. Probeer het opnieuw.');
+      setCancelError(err.response?.data?.message || 'Annuleren mislukt. Probeer het opnieuw.');
     } finally {
       setActiefId(null);
     }
   };
 
-  // Wijzig datum 
+  const verwijderPermanent = async (id) => {
+    setActiefId(id);
+    try {
+      await axios.delete(`/api/reservations/${id}`);
+      setReservations(prev => prev.filter(r => r.id !== id));
+      setDeleteConfirmId(null);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Verwijderen mislukt. Probeer het opnieuw.');
+    } finally {
+      setActiefId(null);
+    }
+  };
+
+  // Wijzig datum
   const openWijzig = (id, huidigeDatum) => {
     setWijzigId(id);
     setNieuweDatum(new Date(huidigeDatum));
@@ -71,24 +123,90 @@ const Dashboard = ({ user }) => {
   const annuleerWijziging = () => {
     setWijzigId(null);
     setNieuweDatum(null);
+    setWijzigReason('');
+    setCancelError('');
   };
 
   const bevestigWijziging = async (id) => {
     if (!nieuweDatum) return;
+    if (!wijzigReason.trim()) {
+      setCancelError('Vul een reden in voor de wijziging.');
+      return;
+    }
     setActiefId(id);
     try {
       const res = await axios.put(`/api/reservations/${id}`, {
         bookingDate: nieuweDatum.toISOString(),
+        wijzigReason: wijzigReason.trim(),
       });
       setReservations(prev => prev.map(r => r.id === id ? res.data : r));
       setWijzigId(null);
       setNieuweDatum(null);
+      setWijzigReason('');
     } catch (err) {
       alert(err.response?.data?.message || 'Wijzigen mislukt. Probeer het opnieuw.');
     } finally {
       setActiefId(null);
     }
   };
+
+  const accepteerLes = async (id) => {
+    setActiefId(id);
+    try {
+      const res = await axios.put(`/api/reservations/${id}`, {
+        status: 'DEFINITIEF',
+        hasPaid: true
+      });
+      setReservations(prev => prev.map(r => r.id === id ? res.data : r));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Kon de les niet accepteren.');
+    } finally {
+      setActiefId(null);
+    }
+  };
+
+  const markeerAlsBetaaldDoorKlant = async (id) => {
+    setActiefId(id);
+    try {
+      const res = await axios.put(`/api/reservations/${id}`, {
+        hasPaid: true
+      });
+      setReservations(prev => prev.map(r => r.id === id ? res.data : r));
+      setNotifyMsg(prev => ({ ...prev, [id]: { success: 'Bedankt! We hebben doorgekregen dat je betaald hebt. De beheerder zal dit zo spoedig mogelijk controleren en definitief maken.' } }));
+      
+      // Laat de melding na 5 seconden verdwijnen
+      setTimeout(() => {
+        setNotifyMsg(prev => {
+          const newMsg = { ...prev };
+          delete newMsg[id];
+          return newMsg;
+        });
+      }, 5000);
+      
+    } catch (err) {
+      setNotifyMsg(prev => ({ ...prev, [id]: { error: err.response?.data?.message || 'Kon betaling niet doorgeven.' } }));
+      
+      // Laat de foutmelding na 5 seconden verdwijnen
+      setTimeout(() => {
+        setNotifyMsg(prev => {
+          const newMsg = { ...prev };
+          delete newMsg[id];
+          return newMsg;
+        });
+      }, 5000);
+    } finally {
+      setActiefId(null);
+    }
+  };
+
+  const filteredReservations = reservations.filter(res => {
+    if (res.status === 'GEANNULEERD') return false; // Verberg altijd geannuleerde reserveringen
+    
+    if (filterType === 'ALL') return true;
+    if (filterType === 'BETAALD') return res.hasPaid || res.status === 'DEFINITIEF';
+    if (filterType === 'OPEN') return !res.hasPaid && res.status !== 'DEFINITIEF';
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-cream py-12 px-6">
@@ -104,9 +222,26 @@ const Dashboard = ({ user }) => {
 
         {/* Reserveringen */}
         <div>
-          <h2 className="text-xl font-bold font-montserrat text-gray-900 mb-4 pb-2 border-b border-gray-200">
-            Mijn Reserveringen
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-2 border-b border-gray-200">
+            <h2 className="text-xl font-bold font-montserrat text-gray-900">
+              Mijn Reserveringen
+            </h2>
+            {userRole === 'eigenaar' && (
+              <div className="flex bg-gray-100 p-1 rounded-sm mt-3 sm:mt-0">
+                {['ALL', 'OPEN', 'BETAALD'].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterType(type)}
+                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition ${
+                      filterType === type ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {type === 'ALL' ? 'Alles' : type === 'OPEN' ? 'Niet Betaald' : 'Betaald'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {loading && (
             <div className="space-y-3">
@@ -135,19 +270,24 @@ const Dashboard = ({ user }) => {
           )}
 
           {/* UNHAPPY */}
-          {!loading && !error && reservations.length === 0 && (
+          {!loading && !error && filteredReservations.length === 0 && (
             <div className="py-4">
-              <p className="text-gray-600 text-sm mb-3">Je hebt nog geen reserveringen.</p>
-              <Link to="/pakketten" className="text-sm font-semibold text-gray-900 underline underline-offset-2 hover:text-primary transition">
-                Bekijk onze pakketten →
-              </Link>
+              <p className="text-gray-600 text-sm mb-3">
+                Je hebt nog geen reserveringen.
+              </p>
+              {/* userRole === 'klant' is de klant rol in db */}
+              {userRole === 'klant' && (
+                <Link to="/pakketten" className="text-sm font-semibold text-gray-900 underline underline-offset-2 hover:text-primary transition">
+                  Bekijk onze pakketten →
+                </Link>
+              )}
             </div>
           )}
 
           {/* HAPPY */}
-          {!loading && !error && reservations.length > 0 && (
+          {!loading && !error && filteredReservations.length > 0 && (
             <div className="space-y-4">
-              {reservations.map((res) => {
+              {filteredReservations.map((res) => {
                 const statusCfg   = STATUS_CONFIG[res.status] || STATUS_CONFIG.VOORLOPIG;
                 const lessonLabel = LESSON_LABELS[res.lesson] || res.lesson;
                 const isOpen      = expanded === res.id;
@@ -162,9 +302,6 @@ const Dashboard = ({ user }) => {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${statusCfg.classes}`}>
-                            {statusCfg.label}
-                          </span>
                           <span className="text-[10px] text-gray-400 font-mono">
                             #{String(res.id).padStart(4, '0')}
                           </span>
@@ -188,55 +325,144 @@ const Dashboard = ({ user }) => {
                             {res.price.toFixed(2)}
                           </span>
                         </div>
+                        
+                        {/* Status voor Klant */}
+                        {userRole === 'klant' && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${statusCfg.classes}`}>
+                              {statusCfg.label}
+                            </span>
+                            <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${res.hasPaid ? (res.status === 'DEFINITIEF' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700') : 'bg-gray-100 text-gray-500'}`}>
+                              {res.hasPaid ? (res.status === 'DEFINITIEF' ? 'BETAALD' : 'KLAARGEZET') : 'NIET BETAALD'}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Geboekt door sectie (Admin / Eigenaar / Instructeur) */}
+                        {userRole !== 'klant' && res.user && (
+                          <div className="mt-3 pl-3 border-l-2 border-gray-200">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Geboekt door:</p>
+                            <div className="text-xs text-gray-700 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                              <span className="font-semibold">{res.user.name || res.user.email}</span>
+                              <span className="flex items-center gap-2 mt-1 sm:mt-0">
+                                <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${res.status === 'DEFINITIEF' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                  {statusCfg.label}
+                                </span>
+                                <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${res.hasPaid ? (res.status === 'DEFINITIEF' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700') : 'bg-gray-100 text-gray-500'}`}>
+                                  {res.hasPaid ? (res.status === 'DEFINITIEF' ? 'BETAALD' : 'KLAARGEZET (CONTROLE)') : 'NIET BETAALD'}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Actieknoppen */}
                       <div className="flex items-center gap-2 shrink-0 flex-wrap">
                         <button
-                          onClick={() => { setExpanded(isOpen ? null : res.id); setWijzigId(null); }}
+                          onClick={() => { setExpanded(isOpen ? null : res.id); setWijzigId(null); sluitCancelModal(); }}
                           className="border border-gray-300 text-gray-700 hover:border-black hover:text-black transition px-4 py-2 text-xs font-semibold uppercase tracking-wider"
                         >
                           {isOpen ? 'Sluiten' : 'Details'}
                         </button>
 
+                        {geannuleerd && deleteConfirmId !== res.id && (
+                          <button
+                            disabled={bezig}
+                            onClick={() => setDeleteConfirmId(res.id)}
+                            className="border border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition px-4 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+                            title="Verwijder deze reservering definitief uit je lijst"
+                          >
+                            Verwijder definitief
+                          </button>
+                        )}
+
+                        {geannuleerd && deleteConfirmId === res.id && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-red-600 font-medium mr-2">Zeker weten?</span>
+                            <button
+                              disabled={bezig}
+                              onClick={() => setDeleteConfirmId(null)}
+                              className="border border-gray-300 text-gray-700 hover:bg-gray-50 transition px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                            >
+                              Nee
+                            </button>
+                            <button
+                              disabled={bezig}
+                              onClick={() => verwijderPermanent(res.id)}
+                              className="bg-red-600 text-white hover:bg-red-700 transition px-3 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+                            >
+                              {bezig ? 'Bezig...' : 'Ja, verwijder'}
+                            </button>
+                          </div>
+                        )}
+
                         {!geannuleerd && (
                           <button
-                            onClick={() => isWijzig ? annuleerWijziging() : openWijzig(res.id, res.bookingDate)}
+                            onClick={() => { isWijzig ? annuleerWijziging() : openWijzig(res.id, res.bookingDate); sluitCancelModal(); }}
                             className="border border-gray-300 text-gray-700 hover:border-black hover:text-black transition px-4 py-2 text-xs font-semibold uppercase tracking-wider"
                           >
                             {isWijzig ? 'Annuleer' : 'Wijzig datum'}
                           </button>
                         )}
 
-                        {!geannuleerd && confirmId !== res.id && (
+                        {!geannuleerd && (
                           <button
-                            onClick={() => setConfirmId(res.id)}
-                            className="border border-red-300 text-red-600 hover:bg-red-50 transition px-4 py-2 text-xs font-semibold uppercase tracking-wider"
+                            onClick={() => cancelId === res.id ? sluitCancelModal() : openCancelModal(res.id)}
+                            className={`border transition px-4 py-2 text-xs font-semibold uppercase tracking-wider ${
+                              cancelId === res.id
+                                ? 'border-red-500 bg-red-50 text-red-700'
+                                : 'border-red-300 text-red-600 hover:bg-red-50'
+                            }`}
                           >
-                            Annuleer les
+                            {cancelId === res.id ? 'Sluiten' : 'Annuleer les'}
                           </button>
                         )}
 
-                        {!geannuleerd && confirmId === res.id && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-600">Weet je het zeker?</span>
-                            <button
-                              disabled={bezig}
-                              onClick={() => handleAnnuleer(res.id)}
-                              className="bg-red-600 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition disabled:opacity-50"
-                            >
-                              {bezig ? '...' : 'Ja'}
-                            </button>
-                            <button
-                              onClick={() => setConfirmId(null)}
-                              className="border border-gray-300 text-gray-600 px-4 py-2 text-xs font-semibold uppercase tracking-wider hover:border-black transition"
-                            >
-                              Nee
-                            </button>
-                          </div>
+                        {/* Knoppen voor klant */}
+                        {!geannuleerd && userRole === 'klant' && !res.hasPaid && (
+                          <button
+                            disabled={bezig}
+                            onClick={() => markeerAlsBetaaldDoorKlant(res.id)}
+                            className="border border-gray-300 text-gray-700 hover:border-black hover:text-black transition px-4 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+                            title="Geef aan dat je het bedrag hebt overgemaakt"
+                          >
+                            {bezig ? 'Bezig...' : 'Ik heb betaald'}
+                          </button>
+                        )}
+
+                        {/* Knoppen voor instructeur & eigenaar */}
+                        {!geannuleerd && (userRole === 'eigenaar' || userRole === 'admin' || userRole === 'instructeur') && (
+                          <>
+                            {res.status !== 'DEFINITIEF' && (
+                              <button
+                                disabled={bezig}
+                                onClick={() => accepteerLes(res.id)}
+                                className="border border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 transition px-4 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+                                title="Accepteer betaling en maak de les definitief"
+                              >
+                                {bezig ? 'Bezig...' : (res.hasPaid ? 'Verifieer & Maak Definitief' : 'Accepteer Betaling')}
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
+
+                    {/* Feedback notify */}
+                    {notifyMsg[res.id] && (notifyMsg[res.id].success || notifyMsg[res.id].error) && (
+                      <div className={`px-5 py-3 text-xs font-medium border-t ${
+                        notifyMsg[res.id].success
+                          ? 'bg-green-50 border-green-100 text-green-700'
+                          : 'bg-red-50 border-red-100 text-red-700'
+                      }`}>
+                        {notifyMsg[res.id].success || notifyMsg[res.id].error}
+                        <button
+                          className="ml-3 underline"
+                          onClick={() => setNotifyMsg(prev => { const n = {...prev}; delete n[res.id]; return n; })}
+                        >Sluiten</button>
+                      </div>
+                    )}
 
                     {/* Datum wijzigen — inline kalender */}
                     {isWijzig && (
@@ -252,17 +478,28 @@ const Dashboard = ({ user }) => {
                           />
                         </div>
                         {nieuweDatum && (
-                          <div className="mt-4 flex items-center gap-3">
-                            <p className="text-sm text-gray-700">
-                              Nieuwe datum: <span className="font-semibold">{formatDate(nieuweDatum)}</span>
-                            </p>
-                            <button
-                              disabled={bezig}
-                              onClick={() => bevestigWijziging(res.id)}
-                              className="bg-black text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition disabled:opacity-50"
-                            >
-                              {bezig ? 'Opslaan...' : 'Bevestig'}
-                            </button>
+                          <div className="mt-4">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Reden voor wijziging <span className="text-red-500">*</span></p>
+                            <textarea
+                              className="w-full border-2 border-gray-200 focus:border-black focus:outline-none p-3 text-sm text-gray-800 resize-none rounded mb-1"
+                              rows={2}
+                              placeholder="Bijv. Te veel wind, op verzoek van de klant..."
+                              value={wijzigReason}
+                              onChange={(e) => { setWijzigReason(e.target.value); setCancelError(''); }}
+                            />
+                            {cancelError && <p className="text-red-600 text-xs mt-1 mb-2 font-medium">{cancelError}</p>}
+                            <div className="flex items-center gap-3 mt-2">
+                              <p className="text-sm text-gray-700">
+                                Nieuwe datum: <span className="font-semibold">{formatDate(nieuweDatum)}</span>
+                              </p>
+                              <button
+                                disabled={bezig}
+                                onClick={() => bevestigWijziging(res.id)}
+                                className="bg-black text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition disabled:opacity-50"
+                              >
+                                {bezig ? 'Opslaan...' : 'Bevestig'}
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -294,23 +531,87 @@ const Dashboard = ({ user }) => {
                               <p className="font-medium mt-0.5">{res.location}</p>
                             </div>
                           )}
-                          {res.duoName && (
+                          {res.instructor && (
                             <div>
-                              <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Duo partner</span>
-                              <p className="font-medium mt-0.5">{res.duoName}</p>
+                              <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Instructeur</span>
+                              <p className="font-medium mt-0.5">{res.instructor.name || res.instructor.email}</p>
                             </div>
                           )}
-                          <div>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Betaald</span>
-                            <p className={`font-medium mt-0.5 flex items-center gap-1 ${res.hasPaid ? 'text-green-700' : 'text-red-600'}`}>
-                              {res.hasPaid ? (
-                                <>Ja <i className="fa-solid fa-check"></i></>
-                              ) : (
-                                'Nee, nog niet betaald'
-                              )}
-                            </p>
-                          </div>
+                          {res.duoName && (
+                            <div className="col-span-1 sm:col-span-2 border-t border-gray-100 pt-2 mt-1">
+                              <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Gegevens Duo-partner</span>
+                              <p className="font-medium mt-0.5">{res.duoName} ({res.duoPhone || 'Geen tel.'})</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{res.duoAddress}, {res.duoCity}</p>
+                            </div>
+                          )}
+                          {res.cancelReason && (
+                            <div className="col-span-2">
+                              <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Reden annulering</span>
+                              <p className="font-medium mt-0.5 text-red-700">{res.cancelReason}</p>
+                            </div>
+                          )}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Annuleer modal (inline) */}
+                    {cancelId === res.id && (
+                      <div className="border-t border-red-100 bg-red-50 px-5 py-5">
+                        {userRole === 'klant' ? (
+                          <>
+                            <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-3">Reden voor annulering <span className="text-red-500">*</span></p>
+                            <textarea
+                              className="w-full border-2 border-red-200 focus:border-red-400 focus:outline-none p-3 text-sm text-gray-800 resize-none rounded"
+                              rows={3}
+                              placeholder="Bijv. ik ben ziek geworden, persoonlijke omstandigheden..."
+                              value={cancelReason}
+                              onChange={(e) => { setCancelReason(e.target.value); setCancelError(''); }}
+                            />
+                            {cancelError && <p className="text-red-600 text-xs mt-1 font-medium">{cancelError}</p>}
+                            <div className="flex gap-3 mt-3">
+                              <button
+                                disabled={bezig}
+                                onClick={() => bevestigAnnulering(res.id)}
+                                className="bg-red-600 text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition disabled:opacity-50"
+                              >
+                                {bezig ? 'Bezig...' : 'Bevestig annulering'}
+                              </button>
+                              <button
+                                onClick={sluitCancelModal}
+                                className="border border-gray-300 text-gray-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider hover:border-black transition"
+                              >
+                                Terug
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-3">Les Annuleren & Verwijderen</p>
+                            <p className="text-sm text-gray-800 mb-4">Klanten die deze les geboekt hebben krijgen automatisch een annuleringsmail.</p>
+                            <div className="flex flex-wrap gap-3 mt-1">
+                              <button
+                                disabled={notifyMsg[res.id]?.loading}
+                                onClick={() => { handleCancelNotify(res.id, 'ziekte'); sluitCancelModal(); }}
+                                className="bg-red-600 text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition disabled:opacity-50"
+                              >
+                                Wegens Ziekte
+                              </button>
+                              <button
+                                disabled={notifyMsg[res.id]?.loading}
+                                onClick={() => { handleCancelNotify(res.id, 'slecht_weer'); sluitCancelModal(); }}
+                                className="bg-red-600 text-white px-5 py-2 text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition disabled:opacity-50"
+                              >
+                                Wegens Weer (Wind &gt; 10)
+                              </button>
+                              <button
+                                onClick={sluitCancelModal}
+                                className="border border-gray-300 text-gray-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider hover:border-black transition"
+                              >
+                                Terug
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

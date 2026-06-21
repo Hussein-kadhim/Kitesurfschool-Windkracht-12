@@ -120,7 +120,7 @@ const Home = ({ user, error }) => {
                 </ul>
               </div>
               <Link
-                to="/pakketten"
+                to={`/reservering/${pkg.id}`}
                 className={`w-full block text-center font-bold py-2 uppercase text-sm transition border-2 ${
                   pkg.isPopular
                     ? 'bg-black text-white border-black hover:bg-gray-800'

@@ -15,14 +15,18 @@ model User {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @default(now()) @updatedAt
   role            String        @default("user")
+  isVerified      Boolean       @default(false)
+  verificationToken String?
   address         String?
   city            String?
   dateOfBirth     DateTime?
   phone           String?
   bsn             String?
+  isBlocked       Boolean       @default(false)
   
   reservations    Reservation[] @relation("ClientReservations")
   assignedLessons Reservation[] @relation("InstructorReservations")
+  schedules       LessonSchedule[] @relation("InstructorSchedule")
 
   @@map("users")
 }
@@ -56,7 +60,21 @@ model Reservation {
 
 enum LessonType {
   PRIVE_LES
-  DUO_LES
-  GROEPSLES
-  GROEPSLES_5_LESSEN
+  LOSSE_DUO_LES
+  DUO_PAKKET_3
+  DUO_PAKKET_5
+}
+
+model LessonSchedule {
+  id           Int      @id @default(autoincrement())
+  date         DateTime
+  time         String
+  instructorId Int      @map("instructor_id")
+  instructor   User     @relation("InstructorSchedule", fields: [instructorId], references: [id])
+  maxPersons   Int      @default(2) @map("max_persons")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  @@unique([date, time, instructorId])
+  @@map("lesson_schedules")
 }

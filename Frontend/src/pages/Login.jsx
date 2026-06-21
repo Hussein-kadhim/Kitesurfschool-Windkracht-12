@@ -39,7 +39,7 @@ const handleSubmit = async (e) => {
     if (!err.response || err.response.status >= 500) {
       setError("Kan momenteel geen verbinding maken met de server. Probeer het later opnieuw.");
     } else {
-      setError("Fout bij inloggen: wachtwoord of e-mailadres klopt niet.");
+      setError(err.response?.data?.message || "Fout bij inloggen: wachtwoord of e-mailadres klopt niet.");
     }
   }
 };
@@ -47,8 +47,6 @@ const handleSubmit = async (e) => {
     <div className="flex items-center justify-center h-screen">
 <form className='bg-white p-8 rounded shadow-md w-full max-w-sm' onSubmit={handleSubmit} noValidate>
     <h2 className='text-2xl font-bold mb-6 text-center font-montserrat'>Login</h2>
-    {error && <div className='text-red-500 mb-4 text-center text-sm font-medium'>{error}</div>}
-    
     <div className="mb-4">
         <input 
             type="email" 
@@ -71,7 +69,14 @@ const handleSubmit = async (e) => {
         {fieldErrors.password && <p className="text-red-500 text-xs mt-1 text-left">{fieldErrors.password}</p>}
     </div>
 
-    <button className='bg-primary text-white p-2 w-full mb-4 hover:opacity-90 transition font-bold'>Inloggen</button>
+    {error && (
+        <div className='flex items-center justify-center gap-2 text-red-500 mb-4 text-sm font-medium'>
+            <i className="fa-solid fa-circle-exclamation" />
+            <span>{error}</span>
+        </div>
+    )}
+    
+    <button className='bg-primary text-white p-2 w-full mb-4 rounded hover:opacity-90 transition font-bold'>Inloggen</button>
     <div className='text-center'>
         <Link to="/forgot-password" className='text-primary hover:underline text-sm'>Wachtwoord vergeten?</Link>
     </div>

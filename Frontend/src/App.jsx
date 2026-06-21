@@ -12,10 +12,12 @@ import NotFound from "./components/NotFound"
 import Footer from "./components/Footer"
 import Reservation from "./pages/Reservation"
 import Success from "./pages/Success"
-    
+import Locations from "./pages/Locations"
+import Verify from "./pages/Verify"
 import Profile from "./pages/Profile"
-import Planning from "./pages/Planning"
 import Dashboard from "./pages/Dashboard"
+import AdminUsers from "./pages/AdminUsers"
+import AdminLessons from "./pages/AdminLessons"
     
 axios.defaults.withCredentials = true
 
@@ -81,11 +83,19 @@ function App() {
     <Route path="/forgot-password" element={user ? <Navigate to="/" /> : <ForgotPassword />} />
     <Route path="/reset-password" element={user ? <Navigate to="/" /> : <ResetPassword />} />
     <Route path="/pakketten" element={<Packages />} />
+    <Route path="/locaties" element={<Locations />} />
+    <Route path="/verify" element={<Verify setUser={updateUser} />} />
+    <Route path="/bevestiging/:id" element={<Success />} />
     <Route path="/reservering/:id" element={(user || error || loading) ? <Reservation user={user} globalError={error} /> : <Navigate to="/login" />} />
     <Route path="/success" element={user ? <Success /> : <Navigate to="/login" />} />
     <Route path="/profile" element={user ? <Profile user={user} setUser={updateUser} /> : <Navigate to="/login" />} />
-    <Route path="/planning" element={<Planning />} />
-    <Route path="/dashboard" element={user ? <Dashboard user={user} setUser={updateUser} /> : <Navigate to="/login" />} />
+    <Route path="/dashboard" element={
+      (user?.role === 'klant' || user?.role === 'eigenaar') ? <Dashboard user={user} setUser={updateUser} /> 
+      : user?.role === 'instructeur' ? <Navigate to="/admin/lessons" />
+      : <Navigate to="/login" />
+    } />
+    <Route path="/admin/users" element={(user?.role === 'eigenaar' || user?.role === 'instructeur') ? <AdminUsers user={user} /> : <Navigate to={user ? "/" : "/login"} />} />
+    <Route path="/admin/lessons" element={(user?.role === 'eigenaar' || user?.role === 'instructeur') ? <AdminLessons user={user} /> : <Navigate to={user ? "/" : "/login"} />} />
     <Route path="*" element={<NotFound />}/>
    </Routes>
    <Footer />

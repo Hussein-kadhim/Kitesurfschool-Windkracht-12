@@ -11,13 +11,18 @@ import {
     getAllUsers,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    verifyEmail,
+    changePassword
 } from "../controllers/auth.js";
 
 const router = express.Router();
 
 // Registeren
 router.post("/register", register)
+
+// Email Verification
+router.post("/verify", verifyEmail)
 
 // Login
 router.post("/login", login)
@@ -36,6 +41,7 @@ router.post("/reset-password", resetPassword);
 
 // Profile (Self)
 router.put("/profile", protect, updateProfile);
+router.put("/password", protect, changePassword);
 
 // User Administration
 router.get("/users", protect, getAllUsers);

@@ -21,13 +21,14 @@ const Navbar = ({user, setUser}) => {
   const handleLogout = async () => {
     try {
       await axios.post('/api/auth/logout');
+    } catch (error) {
+      console.error("Backend logout failed, but we will clear local session anyway:", error);
+    } finally {
       localStorage.removeItem("token");
       setUser(null);
       setIsMenuOpen(false);
+      setLogoutError(""); 
       navigate('/login');
-    } catch (error) {
-      console.error("Logout failed:", error);
-      setLogoutError("Je kan niet uitloggen door een foutmelding. Je blijft mogelijk ingelogd. Sluit handmatig de browser.");
     }
   };
 
@@ -86,10 +87,8 @@ const Navbar = ({user, setUser}) => {
         {/* Center: Navigation Links (Desktop) */}
         <div className='hidden lg:flex justify-center space-x-6 text-gray-600 font-medium'>
             <Link to="/" className={getLinkClass('/')}>Home</Link>
-            <Link to="/planning" className={getLinkClass('/planning')}>Planning</Link>
-            {(!user || user.role === 'klant') && (
-              <Link to="/pakketten" className={getLinkClass('/pakketten')}>Reserveren</Link>
-            )}
+            <Link to="/locaties" className={getLinkClass('/locaties')}>Locaties</Link>
+            <Link to="/pakketten" className={getLinkClass('/pakketten')}>Pakketten</Link>
             {user?.role === 'eigenaar' && (
               <div className="relative admin-dropdown-container">
                 <button
@@ -103,10 +102,9 @@ const Navbar = ({user, setUser}) => {
                 </button>
                 {adminDropdown && (
                   <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-gray-200 shadow-lg py-2 z-50">
-                    <Link to="#" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Gebruikersbeheer</Link>
-                    <Link to="#" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Betalingen</Link>
-                    <Link to="#" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Alle Reserveringen</Link>
-                    <Link to="#" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Statistieken</Link>
+                    <Link to="/admin/users" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Gebruikersbeheer</Link>
+                    <Link to="/dashboard" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Alle Reserveringen</Link>
+                    <Link to="/admin/lessons" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Agenda & Rooster</Link>
                   </div>
                 )}
               </div>
@@ -124,9 +122,8 @@ const Navbar = ({user, setUser}) => {
                 </button>
                 {instructeurDropdown && (
                   <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-gray-200 shadow-lg py-2 z-50">
-                    <Link to="#" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Lessen</Link>
-                    <Link to="#" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Klanten</Link>
-                    <Link to="#" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Les Annuleren</Link>
+                    <Link to="/admin/lessons" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Rooster</Link>
+                    <Link to="/admin/users" state={{ view: 'instructeur' }} onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Klanten</Link>
                   </div>
                 )}
               </div>
@@ -137,7 +134,15 @@ const Navbar = ({user, setUser}) => {
         <div className='flex items-center justify-end space-x-4 lg:space-x-6 text-gray-600 font-medium'>
           {user ? (
             <>
-              <Link to="/dashboard" className='hidden lg:block hover:text-primary'>Dashboard</Link>
+              {/* Toon wie is ingelogd en rol (Eis uit de PDF) */}
+              <div className="hidden lg:flex flex-col text-right mr-2 border-r border-gray-200 pr-4">
+                <span className="text-[11px] font-bold text-gray-900">{user.email}</span>
+                <span className="text-[9px] uppercase tracking-wider text-gray-500">Rol: {user.role}</span>
+              </div>
+
+              {user.role === 'klant' && (
+                <Link to="/dashboard" className='hidden lg:block hover:text-primary'>Dashboard</Link>
+              )}
               <Link to="/profile" className='hidden lg:block hover:text-primary'>Profiel</Link>
               
               {/* Uitloggen is zichtbaar buiten het hamburger menu, alleen op desktop */}
@@ -194,22 +199,20 @@ const Navbar = ({user, setUser}) => {
           </Link>
 
           <Link 
-            to="/planning" 
+            to="/locaties" 
             className="block py-2 hover:text-primary transition"
             onClick={() => setIsMenuOpen(false)}
           >
-            Planning
+            Locaties
           </Link>
 
-          {(!user || user.role === 'klant') && (
-            <Link 
-              to="/pakketten" 
-              className="block py-2 hover:text-primary transition"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Reserveren
-            </Link>
-          )}
+          <Link 
+            to="/pakketten" 
+            className="block py-2 hover:text-primary transition"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Pakketten
+          </Link>
 
           {user?.role === 'eigenaar' && (
             <div>
@@ -222,10 +225,9 @@ const Navbar = ({user, setUser}) => {
               </button>
               {mobileAdminOpen && (
                 <div className="pl-4 border-l-2 border-gray-100 space-y-2 pb-2">
-                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Gebruikersbeheer</Link>
-                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Betalingen</Link>
-                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Alle Reserveringen</Link>
-                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Statistieken</Link>
+                  <Link to="/admin/users" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Gebruikersbeheer</Link>
+                  <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Alle Reserveringen</Link>
+                  <Link to="/admin/lessons" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Agenda & Rooster</Link>
                 </div>
               )}
             </div>
@@ -242,9 +244,8 @@ const Navbar = ({user, setUser}) => {
               </button>
               {mobileInstructeurOpen && (
                 <div className="pl-4 border-l-2 border-gray-100 space-y-2 pb-2">
-                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Lessen</Link>
-                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Klanten</Link>
-                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Les Annuleren</Link>
+                  <Link to="/admin/lessons" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Rooster</Link>
+                  <Link to="/admin/users" state={{ view: 'instructeur' }} onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Klanten</Link>
                 </div>
               )}
             </div>
@@ -254,13 +255,15 @@ const Navbar = ({user, setUser}) => {
           <div className="pt-4 border-t border-gray-100 space-y-4">
             {user ? (
               <>
-                <Link 
-                  to="/dashboard" 
-                  className="block py-2 hover:text-primary transition"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
+                {user.role === 'klant' && (
+                  <Link 
+                    to="/dashboard" 
+                    className="block py-2 hover:text-primary transition"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                )}
                 
                 <Link 
                   to="/profile" 

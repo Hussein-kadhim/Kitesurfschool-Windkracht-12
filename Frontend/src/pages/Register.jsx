@@ -4,12 +4,10 @@ import { useNavigate } from 'react-router-dom';
  
 function Register({setUser}) {
 const [form, setForm] = useState({
-    name: "",
     email: "",
-    password: "",
-
 })
 const [error, setError] = useState("")
+const [successMsg, setSuccessMsg] = useState("");
 const [fieldErrors, setFieldErrors] = useState({});
 const navigate = useNavigate();
 
@@ -17,15 +15,12 @@ const handleSubmit = async (e) => {
   e.preventDefault();
 
   const newErrors = {};
-  if (!form.name) newErrors.name = "Naam is verplicht";
 
   if (!form.email) {
       newErrors.email = "E-mailadres is verplicht";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       newErrors.email = "Voer een geldig e-mailadres in";
   }
-
-  if (!form.password) newErrors.password = "Wachtwoord is verplicht";
 
   if (Object.keys(newErrors).length > 0) {
       setFieldErrors(newErrors);
@@ -36,52 +31,45 @@ const handleSubmit = async (e) => {
 
   try {
     const res = await axios.post('/api/auth/register', form);
-    setUser(res.data.user);
-    navigate('/');
+    setSuccessMsg(res.data.message);
+    setError("");
   } catch (err) {
-    setError("Fout bij registreren, e-mailadres is mogelijk al in gebruik");
+    if (err.response && err.response.data && err.response.data.message) {
+      setError(err.response.data.message);
+    } else {
+      setError("Fout bij aanmelden, probeer het later opnieuw");
+    }
+    setSuccessMsg("");
   }
 };
   return (
     <div className="flex items-center justify-center h-screen">
 <form className='bg-white p-8 rounded shadow-md w-full max-w-sm' onSubmit={handleSubmit} noValidate>
     <h2 className='text-2xl font-bold mb-6 text-center font-montserrat'>Registreer</h2>
-    {error && <div className='text-red-500 mb-4 text-center text-sm font-medium'>{error}</div>}
-    
-    <div className="mb-4">
-        <input 
-            type="text" 
-            placeholder='Naam' 
-            className={`border p-2 w-full focus:outline-none ${fieldErrors.name ? 'border-red-500' : 'border-gray-300 focus:border-primary'}`} 
-            value={form.name} 
-            onChange={(e) => { setForm({...form, name: e.target.value}); setFieldErrors({...fieldErrors, name: ''}); }}
-        />    
-        {fieldErrors.name && <p className="text-red-500 text-xs mt-1 text-left">{fieldErrors.name}</p>}
-    </div>
-
-    <div className="mb-4">
+    <div className="mb-6">
         <input 
             type="email" 
             placeholder='E-mailadres' 
             className={`border p-2 w-full focus:outline-none ${fieldErrors.email ? 'border-red-500' : 'border-gray-300 focus:border-primary'}`} 
             value={form.email} 
-            onChange={(e) => { setForm({...form, email: e.target.value}); setFieldErrors({...fieldErrors, email: ''}); }}
+            onChange={(e) => { setForm({email: e.target.value}); setFieldErrors({...fieldErrors, email: ''}); }}
         />
         {fieldErrors.email && <p className="text-red-500 text-xs mt-1 text-left">{fieldErrors.email}</p>}
     </div>
 
-    <div className="mb-6">
-        <input 
-            type="password" 
-            placeholder='Wachtwoord' 
-            className={`border p-2 w-full focus:outline-none ${fieldErrors.password ? 'border-red-500' : 'border-gray-300 focus:border-primary'}`} 
-            value={form.password} 
-            onChange={(e) => { setForm({...form, password: e.target.value}); setFieldErrors({...fieldErrors, password: ''}); }}
-        /> 
-        {fieldErrors.password && <p className="text-red-500 text-xs mt-1 text-left">{fieldErrors.password}</p>}
-    </div>
-
-    <button className='bg-primary text-white p-2 w-full font-bold hover:opacity-90 transition'>Registreer</button>
+    {error && (
+        <div className='flex items-center justify-center gap-2 text-red-500 mb-4 text-sm font-medium'>
+            <i className="fa-solid fa-circle-exclamation" />
+            <span className="text-center">{error}</span>
+        </div>
+    )}
+    {successMsg && (
+        <div className='flex items-center justify-center gap-2 text-green-500 mb-4 text-sm font-medium'>
+            <i className="fa-solid fa-circle-check" />
+            <span className="text-center">{successMsg}</span>
+        </div>
+    )}
+    <button className='bg-primary text-white p-2 w-full rounded font-bold hover:opacity-90 transition'>Registreer</button>
 </form>
 </div>
   )

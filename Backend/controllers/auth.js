@@ -1,10 +1,10 @@
+import "dotenv/config";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
-import { Resend } from "resend";
+import crypto from 'crypto';
 import { logAuthEvent } from "../lib/authLogger.js";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "../lib/mailer.js";
 
 const cookieOptions = {
     httpOnly: true,
@@ -16,10 +16,10 @@ const cookieOptions = {
 const generateToken = (id) => jwt.sign({id}, process.env.JWT_SECRET || "", {expiresIn: "30d"})
 
 export const register = async (req, res) => {
-    const {name, email, password} = req.body;
+    const {email} = req.body;
 
-    if(!name || !email || !password) {
-        return res.status(400).json({message: "Vul alle velden in"})
+    if(!email) {
+        return res.status(400).json({message: "Vul een e-mailadres in"})
     }
 
     const userExists = await prisma.user.findUnique({
@@ -27,55 +27,128 @@ export const register = async (req, res) => {
     });
 
     if (userExists) {
-        return res.status(400).json({message: "Gebruiker bestaat al"});
+        if (userExists.isBlocked) {
+            return res.status(403).json({ message: "Dit e-mailadres is geblokkeerd door de beheerder en kan niet opnieuw worden geregistreerd." });
+        }
+        return res.status(400).json({ message: "Er bestaat al een account met dit e-mailadres." });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Generate a secure, random temporary password because Prisma password field is non-nullable.
+    const tempPassword = crypto.randomBytes(16).toString('hex');
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
 
     const user = await prisma.user.create({
         data: {
-            name,
             email,
             password: hashedPassword,
+            verificationToken,
             role: "klant"
         },
         select: {
             id: true,
-            name: true,
             email: true,
             role: true
         }
     });
 
+    const activationLink = `http://localhost:5173/verify?token=${verificationToken}`;
+
+
     // Welkomstmail verzenden met Resend
-    try {
-        await resend.emails.send({
-            from: 'onboarding@resend.dev',
-            to: email,
-            subject: 'Welkom bij Kitesurfschool Windkracht-12!',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                <h2 style="color: #005B96;">Welkom ${name}!</h2>
-                <p>Super leuk dat je een account hebt aangemaakt bij Kitesurfschool Windkracht-12.</p>
-                <p>Met dit account kun je eenvoudig je kitesurflessen boeken, je planning inzien en nog veel meer.</p>
-                <p>We hopen je snel te zien op het water!</p>
-                <p>Met sportieve groet,<br><br><strong>Team Windkracht-12</strong></p>
-              </div>
-            `
-        });
-    } catch (emailError) {
-        console.error("Fout bij verzenden van welkomstmail via Resend:", emailError);
+    const response = await sendEmail({
+        to: email,
+        subject: 'Activeer je Windkracht-12 account',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h2 style="color: #005B96;">Welkom!</h2>
+            <p>Super leuk dat je een account hebt aangemaakt bij Kitesurfschool Windkracht-12.</p>
+            <p>Klik op de onderstaande link om je account te activeren en je wachtwoord in te stellen:</p>
+            <a href="${activationLink}" style="display: inline-block; padding: 10px 20px; color: #fff; background-color: #005B96; text-decoration: none; border-radius: 5px;">Account Activeren</a>
+            <p>Met sportieve groet,<br><br><strong>Team Windkracht-12</strong></p>
+          </div>
+        `
+    });
+    
+    if (!response.success) {
+        console.error("Fout bij het versturen van de activatiemail:", response.error);
     }
+    // Error handling removed because sendEmail handles try-catch
 
-    const token = generateToken(user.id);
-    res.cookie("token", token, cookieOptions);
-
-    // Log the registration/initial login
-    logAuthEvent(email, "login");
-
-    return res.status(201).json({ user })
+    return res.status(201).json({ 
+        message: "Registratie gestart! Controleer je e-mail om je account te activeren en je wachtwoord in te stellen.",
+        user: user
+     })
 }
 
+
+export const verifyEmail = async (req, res) => {
+    const { token, name, password } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ message: "Geen token opgegeven." });
+    }
+
+    if (!name) {
+        return res.status(400).json({ message: "Volledige naam is verplicht." });
+    }
+
+    if (!password) {
+        return res.status(400).json({ message: "Wachtwoord is verplicht." });
+    }
+
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={\[\]|\\:;"'<>,.?/-]).{12,}$/;
+    if (!passwordRegex.test(password)) {
+        return res.status(400).json({ message: "Wachtwoord moet minstens 12 tekens lang zijn en een hoofdletter, cijfer en leesteken bevatten." });
+    }
+
+    try {
+        const user = await prisma.user.findFirst({
+            where: { verificationToken: token }
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: "Ongeldige of verlopen activatiecode." });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const updatedUser = await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                name,
+                isVerified: true,
+                password: hashedPassword,
+                verificationToken: null // Verwijder de token na succesvolle verificatie
+            }
+        });
+
+        const jwtToken = generateToken(updatedUser.id);
+        res.cookie("token", jwtToken, cookieOptions);
+
+        logAuthEvent(updatedUser.email, "login");
+
+        return res.status(200).json({ 
+            message: "Je account is succesvol geactiveerd!",
+            user: {
+                id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                role: updatedUser.role,
+                address: updatedUser.address,
+                city: updatedUser.city,
+                dateOfBirth: updatedUser.dateOfBirth,
+                phone: updatedUser.phone,
+                bsn: updatedUser.bsn
+            }
+        });
+    } catch (error) {
+        console.error("Fout bij verificatie:", error);
+        return res.status(500).json({ message: "Er is een fout opgetreden bij het verifiëren van je account." });
+    }
+};
 
 export const login = async (req, res) => {
     const {email, password} = req.body;
@@ -90,6 +163,14 @@ export const login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({message: "Onjuiste combinatie van e-mailadres en wachtwoord"});
+
+    if (user.isBlocked) {
+        return res.status(403).json({message: "Je account is geblokkeerd door de beheerder."});
+    }
+
+    if (user.isVerified === false) {
+        return res.status(403).json({message: "Je account is nog niet geactiveerd. Controleer je e-mail voor de activatielink."});
+    }
 
     const token = generateToken(user.id);
     res.cookie("token", token, cookieOptions);
@@ -107,7 +188,8 @@ export const login = async (req, res) => {
             city: user.city,
             dateOfBirth: user.dateOfBirth,
             phone: user.phone,
-            bsn: user.bsn
+            bsn: user.bsn,
+            isBlocked: user.isBlocked
         }
     });
 }
@@ -143,15 +225,13 @@ export const forgotPassword = async (req, res) => {
         const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || "", { expiresIn: '15m' });
         const resetLink = `http://localhost:5173/reset-password?token=${token}`;
 
-        const { data, error } = await resend.emails.send({
-            from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+        const response = await sendEmail({
             to: email,
             subject: "Wachtwoord Reset",
             html: `<p>Klik op de onderstaande link om je wachtwoord te resetten:</p><a href="${resetLink}">Wachtwoord Resetten</a>`,
         });
 
-        if (error) {
-            console.error("Resend API error:", error);
+        if (!response.success) {
             return res.status(500).json({ message: "Er is iets misgegaan bij het verzenden van de e-mail." });
         }
 
@@ -185,6 +265,40 @@ export const resetPassword = async (req, res) => {
     } catch (error) {
         console.error("Reset password error:", error);
         res.status(400).json({ message: "Ongeldige of verlopen link." });
+    }
+}
+
+export const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user.id;
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) return res.status(404).json({ message: "Gebruiker niet gevonden" });
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) return res.status(400).json({ message: "Huidig wachtwoord is onjuist" });
+
+        // Strikte wachtwoordeisen
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={\[\]|\\:;"'<>,.?/-]).{12,}$/;
+        if (!passwordRegex.test(newPassword)) {
+            return res.status(400).json({ 
+                message: "Nieuw wachtwoord moet minstens 12 tekens lang zijn en een hoofdletter, cijfer en leesteken bevatten." 
+            });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        res.json({ message: "Wachtwoord succesvol gewijzigd!" });
+    } catch (error) {
+        console.error("Change password error:", error);
+        res.status(500).json({ message: "Kon wachtwoord niet wijzigen" });
     }
 }
 
@@ -240,7 +354,8 @@ export const getAllUsers = async (req, res) => {
                 city: true,
                 dateOfBirth: true,
                 phone: true,
-                bsn: true
+                bsn: true,
+                isBlocked: true
             },
             orderBy: { id: 'asc' }
         });
