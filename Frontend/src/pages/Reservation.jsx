@@ -8,20 +8,42 @@ const MAANDEN = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni',
                  'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December'];
 const DAGEN_LANG = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag'];
 
-const TIJDSLOTEN = [
-  { tijd: '09:00 - 11:30', status: 'beschikbaar' },
-  { tijd: '12:30 - 15:00', status: 'beschikbaar' },
-  { tijd: '15:30 - 18:00', status: 'beperkt', plekken: 2 },
-  { tijd: '18:30 - 21:00', status: 'volgeboekt' },
-];
+
 
 const Reservation = ({ user, globalError }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const pkg = packages.find(p => p.id === parseInt(id));
 
-  const [geselecteerdeDatum, setGeselecteerdeDatum] = useState(new Date());
+  const [geselecteerdeDatum, setGeselecteerdeDatum] = useState(null);
   const [geselecteerdeTijd, setGeselecteerdeTijd] = useState(null);
+  const [geselecteerdeSlot, setGeselecteerdeSlot] = useState(null);
+  const [schedules, setSchedules] = useState([]);
+  const [loadingSchedules, setLoadingSchedules] = useState(true);
+
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        const res = await fetch('/api/schedule', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setSchedules(data.schedules);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingSchedules(false);
+      }
+    };
+    fetchSchedules();
+  }, []);
+
+  const availableSlots = geselecteerdeDatum ? schedules.filter(s => {
+    const sDate = new Date(s.date);
+    return sDate.getFullYear() === geselecteerdeDatum.getFullYear() &&
+           sDate.getMonth() === geselecteerdeDatum.getMonth() &&
+           sDate.getDate() === geselecteerdeDatum.getDate();
+  }) : [];
   
   const LOCATIES = [
     "Zandvoort",
@@ -94,6 +116,8 @@ const Reservation = ({ user, globalError }) => {
           userId: user?.id,
           price: pkg.price,
           bookingDate: geselecteerdeDatum.toISOString(),
+          bookingTime: geselecteerdeTijd,
+          instructorId: geselecteerdeSlot?.instructorId,
           location: geselecteerdeLocatie,
           duoName: isDuo ? duoName.trim() : null,
           duoAddress: isDuo ? duoAddress.trim() : null,
@@ -157,6 +181,14 @@ const Reservation = ({ user, globalError }) => {
                 minDate={new Date()}
                 next2Label={null}
                 prev2Label={null}
+                tileDisabled={({ date }) => {
+                  return !schedules.some(s => {
+                    const sDate = new Date(s.date);
+                    return sDate.getFullYear() === date.getFullYear() &&
+                           sDate.getMonth() === date.getMonth() &&
+                           sDate.getDate() === date.getDate();
+                  });
+                }}
               />
             </div>
 
@@ -235,46 +267,55 @@ const Reservation = ({ user, globalError }) => {
               </div>
             )}
 
-            {/* Tijdsloten */}
             {geselecteerdeDatum && (
               <div className={`bg-white border-2 border-gray-200 p-6 ${error ? 'pointer-events-none opacity-50' : ''}`}>
                 <div className="flex items-center justify-between mb-5">
                   <span className="font-bold text-gray-900">{formatDatumKort()}</span>
                   <i className="fa-regular fa-sun text-gray-400"></i>
                 </div>
-                <div className="flex flex-col gap-3">
-                  {TIJDSLOTEN.map((slot, i) => {
-                    const isVol = slot.status === 'volgeboekt' || !!error;
-                    const isSel = geselecteerdeTijd === slot.tijd;
-                    return (
-                      <button
-                        key={i}
-                        disabled={isVol}
-                        onClick={() => !isVol && setGeselecteerdeTijd(slot.tijd)}
-                        className={`flex items-center justify-between px-4 py-3 border-2 transition text-sm font-medium w-full
-                          ${isVol ? 'border-gray-100 text-gray-300 cursor-default' : ''}
-                          ${isSel ? 'bg-gray-900 border-gray-900 text-white' : ''}
-                          ${!isVol && !isSel ? 'border-gray-200 text-gray-700 hover:border-gray-400' : ''}
-                        `}
-                      >
-                        <span>{slot.tijd}</span>
-                        <span className={`text-[10px] font-bold border px-2 py-0.5 uppercase tracking-wider
-                          ${isSel ? 'border-gray-600 text-gray-400' : ''}
-                          ${isVol ? 'border-gray-200 text-gray-300' : ''}
-                          ${!isVol && !isSel ? 'border-gray-300 text-gray-500' : ''}
-                        `}>
-                          {isVol
-                            ? 'Volgeboekt'
-                            : isSel
-                            ? 'Geselecteerd'
-                            : slot.plekken
-                            ? `${slot.plekken} Plekken Vrij`
-                            : 'Beschikbaar'}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                {loadingSchedules ? (
+                  <p className="text-sm text-gray-500">Laden...</p>
+                ) : availableSlots.length === 0 ? (
+                  <p className="text-sm text-red-500 font-medium">Op deze dag zijn geen lessen ingepland door de eigenaar.</p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {availableSlots.map((slot) => {
+                      const isVol = false; //TODO: reservations logic
+                      const isSel = geselecteerdeTijd === slot.time;
+                      return (
+                        <button
+                          key={slot.id}
+                          disabled={isVol}
+                          onClick={() => {
+                            if (!isVol) {
+                              setGeselecteerdeTijd(slot.time);
+                              setGeselecteerdeSlot(slot);
+                            }
+                          }}
+                          className={`flex items-center justify-between px-4 py-3 border-2 transition text-sm font-medium w-full
+                            ${isVol ? 'border-gray-100 text-gray-300 cursor-default' : ''}
+                            ${isSel ? 'bg-gray-900 border-gray-900 text-white' : ''}
+                            ${!isVol && !isSel ? 'border-gray-200 text-gray-700 hover:border-gray-400' : ''}
+                          `}
+                        >
+                          <div className="flex flex-col items-start">
+                            <span>{slot.time}</span>
+                            <span className="text-xs text-gray-500 font-normal mt-0.5">
+                              Instructeur: {slot.instructor?.name || 'Onbekend'}
+                            </span>
+                          </div>
+                          <span className={`text-[10px] font-bold border px-2 py-0.5 uppercase tracking-wider
+                            ${isSel ? 'border-gray-600 text-gray-400' : ''}
+                            ${isVol ? 'border-gray-200 text-gray-300' : ''}
+                            ${!isVol && !isSel ? 'border-gray-300 text-green-600 bg-green-50' : ''}
+                          `}>
+                            {isVol ? 'Volgeboekt' : isSel ? 'Geselecteerd' : `Beschikbaar`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -296,6 +337,9 @@ const Reservation = ({ user, globalError }) => {
                   <p className="font-bold text-gray-900 text-sm">{formatDatumLang()}</p>
                   <p className="text-sm text-gray-500">{geselecteerdeTijd}</p>
                   <p className="text-sm text-gray-500 mt-1"><i className="fa-solid fa-location-dot mr-1"></i>{geselecteerdeLocatie}</p>
+                  {geselecteerdeSlot && (
+                    <p className="text-sm text-gray-500 mt-1"><i className="fa-solid fa-user mr-1"></i>{geselecteerdeSlot.instructor?.name || 'Instructeur'}</p>
+                  )}
                 </div>
               )}
 

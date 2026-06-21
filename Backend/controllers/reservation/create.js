@@ -17,7 +17,7 @@ export const createReservation = async (req, res) => {
    
     try{
 
-        const {lesson, bookingDate, price, location, duoName, duoAddress, duoCity, duoPhone} = req.body;
+        const {lesson, bookingDate, price, location, instructorId, duoName, duoAddress, duoCity, duoPhone} = req.body;
 
         if(!lesson || !bookingDate || price === undefined || price === null || !location) {
             return res.status(400).json({message: "Vul alle velden in"});
@@ -51,6 +51,7 @@ export const createReservation = async (req, res) => {
                 bookingDate: parsedDate,
                 price: parsedPrice,
                 location,
+                instructorId,
                 duoName: isDuo ? duoName : null,
                 duoAddress: isDuo ? duoAddress : null,
                 duoCity: isDuo ? duoCity : null,
@@ -107,7 +108,7 @@ export const createReservation = async (req, res) => {
                        <li style="margin-bottom: 8px;"><strong>Betalingskenmerk:</strong> Reservering #${reservation.id}</li>
                     </ul>
                   </div>
-                  <a href="${bookingConfirmation}" style="display: inline-block; padding: 10px 20px; color: #fff; background-color: #005B96; text-decoration: none; border-radius: 5px; margin-top: 10px; margin-bottom: 10px;">Bevestig je reservering (betalen)</a>
+                  <p style="margin-top: 10px; margin-bottom: 10px; font-weight: bold; color: #005B96;">Zodra je het bedrag hebt overgemaakt, log in op je dashboard en klik bij je reservering op de knop "Ik heb betaald". Wij maken de reservering daarna zo snel mogelijk definitief!</p>
                   <p>We nemen binnenkort contact met je op als er bijzonderheden zijn met betrekking tot de wind- en weersomstandigheden.</p>
                   <p>Met vriendelijke groet,<br><br><strong>Team Windkracht-12</strong></p>
                 </div>

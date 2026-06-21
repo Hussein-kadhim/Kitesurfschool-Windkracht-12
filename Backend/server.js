@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.js"
 import packagesRoutes from "./routes/packages.js"
 import reservationRoutes from "./routes/reservation.js"
 import gebruikersRoutes from "./routes/users.js"
+import scheduleRoutes from "./routes/schedule.js"
 import { startCleanupJob } from "./cron/cleanup.js";
 
 const app = express();
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/packages", packagesRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/gebruikers", gebruikersRoutes);
+app.use("/api/schedule", scheduleRoutes);
 
 const PORT = process.env.PORT || 5000;
 

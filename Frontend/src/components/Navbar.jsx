@@ -88,10 +88,7 @@ const Navbar = ({user, setUser}) => {
         <div className='hidden lg:flex justify-center space-x-6 text-gray-600 font-medium'>
             <Link to="/" className={getLinkClass('/')}>Home</Link>
             <Link to="/locaties" className={getLinkClass('/locaties')}>Locaties</Link>
-            <Link to="/planning" className={getLinkClass('/planning')}>Planning</Link>
-            {(!user || user.role === 'klant') && (
-              <Link to="/pakketten" className={getLinkClass('/pakketten')}>Reserveren</Link>
-            )}
+            <Link to="/pakketten" className={getLinkClass('/pakketten')}>Pakketten</Link>
             {user?.role === 'eigenaar' && (
               <div className="relative admin-dropdown-container">
                 <button
@@ -106,8 +103,8 @@ const Navbar = ({user, setUser}) => {
                 {adminDropdown && (
                   <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-gray-200 shadow-lg py-2 z-50">
                     <Link to="/admin/users" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Gebruikersbeheer</Link>
-                    <Link to="/admin/lessons" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Alle Reserveringen</Link>
-                    <Link to="#" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Statistieken</Link>
+                    <Link to="/dashboard" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Alle Reserveringen</Link>
+                    <Link to="/admin/lessons" onClick={() => setAdminDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Agenda & Rooster</Link>
                   </div>
                 )}
               </div>
@@ -125,9 +122,9 @@ const Navbar = ({user, setUser}) => {
                 </button>
                 {instructeurDropdown && (
                   <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-gray-200 shadow-lg py-2 z-50">
-                    <Link to="/admin/lessons" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Lessen</Link>
+                    <Link to="/dashboard" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Reserveringen</Link>
+                    <Link to="/admin/lessons" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Rooster</Link>
                     <Link to="/admin/users" state={{ view: 'instructeur' }} onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mijn Klanten</Link>
-                    <Link to="#" onClick={() => setInstructeurDropdown(false)} className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Les Annuleren</Link>
                   </div>
                 )}
               </div>
@@ -205,22 +202,12 @@ const Navbar = ({user, setUser}) => {
           </Link>
 
           <Link 
-            to="/planning" 
+            to="/pakketten" 
             className="block py-2 hover:text-primary transition"
             onClick={() => setIsMenuOpen(false)}
           >
-            Planning
+            Pakketten
           </Link>
-
-          {(!user || user.role === 'klant') && (
-            <Link 
-              to="/pakketten" 
-              className="block py-2 hover:text-primary transition"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Reserveren
-            </Link>
-          )}
 
           {user?.role === 'eigenaar' && (
             <div>
@@ -234,8 +221,8 @@ const Navbar = ({user, setUser}) => {
               {mobileAdminOpen && (
                 <div className="pl-4 border-l-2 border-gray-100 space-y-2 pb-2">
                   <Link to="/admin/users" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Gebruikersbeheer</Link>
-                  <Link to="/admin/lessons" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Alle Reserveringen</Link>
-                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Statistieken</Link>
+                  <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Alle Reserveringen</Link>
+                  <Link to="/admin/lessons" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Agenda & Rooster</Link>
                 </div>
               )}
             </div>
@@ -252,9 +239,9 @@ const Navbar = ({user, setUser}) => {
               </button>
               {mobileInstructeurOpen && (
                 <div className="pl-4 border-l-2 border-gray-100 space-y-2 pb-2">
-                  <Link to="/admin/lessons" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Lessen</Link>
+                  <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Reserveringen</Link>
+                  <Link to="/admin/lessons" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Rooster</Link>
                   <Link to="/admin/users" state={{ view: 'instructeur' }} onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Mijn Klanten</Link>
-                  <Link to="#" onClick={() => setIsMenuOpen(false)} className="block py-1.5 text-sm text-gray-500 hover:text-primary transition">Les Annuleren</Link>
                 </div>
               )}
             </div>

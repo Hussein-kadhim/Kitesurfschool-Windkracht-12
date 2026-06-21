@@ -15,7 +15,6 @@ import Success from "./pages/Success"
 import Locations from "./pages/Locations"
 import Verify from "./pages/Verify"
 import Profile from "./pages/Profile"
-import Planning from "./pages/Planning"
 import Dashboard from "./pages/Dashboard"
 import AdminUsers from "./pages/AdminUsers"
 import AdminLessons from "./pages/AdminLessons"
@@ -90,7 +89,6 @@ function App() {
     <Route path="/reservering/:id" element={(user || error || loading) ? <Reservation user={user} globalError={error} /> : <Navigate to="/login" />} />
     <Route path="/success" element={user ? <Success /> : <Navigate to="/login" />} />
     <Route path="/profile" element={user ? <Profile user={user} setUser={updateUser} /> : <Navigate to="/login" />} />
-    <Route path="/planning" element={<Planning />} />
     <Route path="/dashboard" element={
       user?.role === 'klant' ? <Dashboard user={user} setUser={updateUser} /> 
       : user?.role === 'eigenaar' ? <Navigate to="/admin/lessons" />
