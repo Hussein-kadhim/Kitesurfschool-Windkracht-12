@@ -45,9 +45,11 @@ const Profile = ({ user, setUser }) => {
       const res = await axios.put('/api/auth/profile', formData);
       setUser(res.data.user);
       setMessage('Je profielgegevens zijn succesvol bijgewerkt!');
+      setTimeout(() => setMessage(''), 5000);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Er is iets misgegaan bij het bijwerken van je gegevens.');
+      setTimeout(() => setError(''), 5000);
     } finally {
       setLoading(false);
     }

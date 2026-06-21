@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js"
-import packagesRoutes from "./routes/packages.js"
+
 import reservationRoutes from "./routes/reservation.js"
 import gebruikersRoutes from "./routes/users.js"
 import scheduleRoutes from "./routes/schedule.js"
@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
-app.use("/api/packages", packagesRoutes);
+
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/gebruikers", gebruikersRoutes);
 app.use("/api/schedule", scheduleRoutes);

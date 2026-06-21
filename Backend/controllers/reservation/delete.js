@@ -1,8 +1,6 @@
 import "dotenv/config";
 import { prisma } from "../../lib/prisma.js";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "../../lib/mailer.js";
 
 const LESSON_LABELS = {
   PRIVE_LES:     'Privéles',
@@ -49,8 +47,7 @@ export const deleteReservation = async (req, res) => {
     });
 
     try {
-      await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+      await sendEmail({
         to: reservering.user.email,
         subject: 'Annulering bevestigd - Kitesurfschool Windkracht-12',
         html: `
@@ -79,8 +76,7 @@ export const deleteReservation = async (req, res) => {
     // Stuur annuleringsmail naar de instructeur (als er een is)
     if (reservering.instructor?.email) {
       try {
-        await resend.emails.send({
-          from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+        await sendEmail({
           to: reservering.instructor.email,
           subject: `Reservering verwijderd - Klant: ${reservering.user.name}`,
           html: `

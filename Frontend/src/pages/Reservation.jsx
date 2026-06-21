@@ -173,9 +173,9 @@ const Reservation = ({ user, globalError }) => {
           <div className="flex-1 flex flex-col gap-6">
 
             {/* Kalender via react-calendar */}
-            <div className={`bg-white border-2 border-gray-200 p-6 reservation-calendar ${error ? 'pointer-events-none opacity-50' : ''}`}>
+            <div className="bg-white border-2 border-gray-200 p-6 reservation-calendar">
               <Calendar
-                onChange={setGeselecteerdeDatum}
+                onChange={(date) => { setGeselecteerdeDatum(date); setError(""); setGeselecteerdeTijd(null); }}
                 value={geselecteerdeDatum}
                 locale="nl-NL"
                 minDate={new Date()}
@@ -193,7 +193,7 @@ const Reservation = ({ user, globalError }) => {
             </div>
 
             {/* Locatie Dropdown */}
-            <div className={`bg-white border-2 border-gray-200 p-6 ${error ? 'pointer-events-none opacity-50' : ''}`}>
+            <div className="bg-white border-2 border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <span className="font-bold text-gray-900">Kies een Locatie</span>
                 <i className="fa-solid fa-location-dot text-gray-400"></i>
@@ -202,7 +202,7 @@ const Reservation = ({ user, globalError }) => {
                 <select 
                   className="w-full appearance-none border-2 border-gray-200 p-3 bg-gray-50 text-gray-900 font-bold focus:border-black focus:bg-white focus:outline-none transition cursor-pointer hover:border-gray-300"
                   value={geselecteerdeLocatie}
-                  onChange={(e) => setGeselecteerdeLocatie(e.target.value)}
+                  onChange={(e) => { setGeselecteerdeLocatie(e.target.value); setError(""); }}
                 >
                   <option value="" disabled className="font-normal text-gray-500">Selecteer een locatie...</option>
                   {LOCATIES.map((loc, idx) => (
@@ -217,7 +217,7 @@ const Reservation = ({ user, globalError }) => {
 
             {/* Gegevens Duo-partner */}
             {isDuo && (
-              <div className={`bg-white border-2 border-gray-200 p-6 space-y-4 ${error ? 'pointer-events-none opacity-50' : ''}`}>
+              <div className="bg-white border-2 border-gray-200 p-6 space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                   <span className="font-bold text-gray-900">Gegevens Duo-partner</span>
                   <i className="fa-solid fa-users text-gray-400"></i>
@@ -268,7 +268,7 @@ const Reservation = ({ user, globalError }) => {
             )}
 
             {geselecteerdeDatum && (
-              <div className={`bg-white border-2 border-gray-200 p-6 ${error ? 'pointer-events-none opacity-50' : ''}`}>
+              <div className="bg-white border-2 border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-5">
                   <span className="font-bold text-gray-900">{formatDatumKort()}</span>
                   <i className="fa-regular fa-sun text-gray-400"></i>
@@ -280,7 +280,17 @@ const Reservation = ({ user, globalError }) => {
                 ) : (
                   <div className="flex flex-col gap-3">
                     {availableSlots.map((slot) => {
-                      const isVol = false; //TODO: reservations logic
+                      let isVol = false;
+                      if (slot.hasPrive) {
+                        isVol = true; // Als er een privéles in dit slot zit, is het helemaal vol
+                      } else if (slot.bookedCount >= slot.maxPersons) {
+                        isVol = true; // Maximale capaciteit bereikt
+                      } else if (!isDuo && slot.bookedCount > 0) {
+                        isVol = true; // Wil een privéles boeken, maar er zit al iemand in de groep
+                      } else if (isDuo && (slot.maxPersons - slot.bookedCount < 2)) {
+                        isVol = true; // Wil een duoles (2 personen) boeken, maar er is maar 1 plek over
+                      }
+
                       const isSel = geselecteerdeTijd === slot.time;
                       return (
                         <button
@@ -290,6 +300,7 @@ const Reservation = ({ user, globalError }) => {
                             if (!isVol) {
                               setGeselecteerdeTijd(slot.time);
                               setGeselecteerdeSlot(slot);
+                              setError("");
                             }
                           }}
                           className={`flex items-center justify-between px-4 py-3 border-2 transition text-sm font-medium w-full
@@ -355,7 +366,7 @@ const Reservation = ({ user, globalError }) => {
               )}
               <form action="" method="post" onSubmit={handleSubmit}>
               <button
-                disabled={!geselecteerdeDatum || !geselecteerdeTijd || !geselecteerdeLocatie || isSubmitting || !!error}
+                disabled={!geselecteerdeDatum || !geselecteerdeTijd || !geselecteerdeLocatie || isSubmitting}
                 className="w-full bg-gray-900 text-white py-3 font-bold uppercase tracking-wide text-sm hover:bg-black transition disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Bezig met reserveren..." : "Volgende Stap"}

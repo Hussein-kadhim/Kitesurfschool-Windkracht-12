@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { sendEmail } from "../../lib/mailer.js";
 
 export const deleteSchedule = async (req, res) => {
     if (req.user.role !== 'eigenaar' && req.user.role !== 'instructeur') {
@@ -56,42 +57,77 @@ export const deleteSchedule = async (req, res) => {
 
              // Stuur emails
              try {
-                 const { Resend } = await import("resend");
-                 if (process.env.RESEND_API_KEY) {
-                     const resend = new Resend(process.env.RESEND_API_KEY);
+                 const redenText = reason === 'ziekte' 
+                     ? "Ziekte van de instructeur" 
+                     : "Slechte weersomstandigheden (windkracht > 10)";
                      
-                     const redenText = reason === 'ziekte' 
-                         ? "Ziekte van de instructeur" 
-                         : "Slechte weersomstandigheden (windkracht > 10)";
-                         
-                     const dateStr = startOfDay.toLocaleDateString('nl-NL');
+                 const dateStr = startOfDay.toLocaleDateString('nl-NL');
 
-                     const sentEmails = new Set();
+                 const sentEmails = new Set();
 
-                     for (const resData of reservationsToCancel) {
-                         if (!resData.user.email) continue;
-                         if (sentEmails.has(resData.user.email)) continue;
-                         
-                         sentEmails.add(resData.user.email);
-                         
-                         await resend.emails.send({
-                             from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
-                             to: resData.user.email,
-                             subject: 'Belangrijk: Je Kitesurfles is geannuleerd',
+                 for (const resData of reservationsToCancel) {
+                     if (!resData.user.email) continue;
+                     if (sentEmails.has(resData.user.email)) continue;
+                     
+                     sentEmails.add(resData.user.email);
+                     
+                     await sendEmail({
+                         to: resData.user.email,
+                         subject: 'Belangrijk: Je Kitesurfles is geannuleerd',
+                         html: `
+                           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                             <h2 style="color: #D32F2F;">Les Geannuleerd</h2>
+                             <p>Beste ${resData.user.name || 'kitesurfer'},</p>
+                             <p>Helaas moeten we je kitesurfles van <strong>${dateStr}</strong> om <strong>${schedule.time}</strong> annuleren.</p>
+                             <p><strong>Reden:</strong> ${redenText}</p>
+                             <p><strong>Instructeur:</strong> ${schedule.instructor?.name || schedule.instructor?.email}</p>
+                             <p>Je kunt via je dashboard kosteloos een nieuwe les inplannen of contact met ons opnemen voor een restitutie als je al betaald had.</p>
+                             <p>Onze excuses voor het ongemak.</p>
+                             <p>Met sportieve groet,<br><br><strong>Team Windkracht-12</strong></p>
+                           </div>
+                         `
+                     });
+                 }
+
+                 // Mail naar eigenaar(en)
+                 const eigenaren = await prisma.user.findMany({ where: { role: 'eigenaar' } });
+                 for (const eigenaar of eigenaren) {
+                     if (eigenaar.email) {
+                         await sendEmail({
+                             to: eigenaar.email,
+                             subject: 'Systeem: Lesrooster Geannuleerd',
                              html: `
                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                                 <h2 style="color: #D32F2F;">Les Geannuleerd</h2>
-                                 <p>Beste ${resData.user.name || 'kitesurfer'},</p>
-                                 <p>Helaas moeten we je kitesurfles van <strong>${dateStr}</strong> om <strong>${schedule.time}</strong> annuleren.</p>
+                                 <h2 style="color: #D32F2F;">Les-slot Geannuleerd</h2>
+                                 <p>Beste ${eigenaar.name || 'Eigenaar'},</p>
+                                 <p>Er is zojuist een gepland les-slot geannuleerd.</p>
                                  <p><strong>Reden:</strong> ${redenText}</p>
                                  <p><strong>Instructeur:</strong> ${schedule.instructor?.name || schedule.instructor?.email}</p>
-                                 <p>Je kunt via je dashboard kosteloos een nieuwe les inplannen of contact met ons opnemen voor een restitutie als je al betaald had.</p>
-                                 <p>Onze excuses voor het ongemak.</p>
-                                 <p>Met sportieve groet,<br><br><strong>Team Windkracht-12</strong></p>
+                                 <p><strong>Datum & Tijd:</strong> ${dateStr} om ${schedule.time}</p>
+                                 <p>De getroffen klanten hebben automatisch een e-mail ontvangen.</p>
                                </div>
                              `
                          });
                      }
+                 }
+
+                 // Mail naar de instructeur zelf ter bevestiging
+                 if (schedule.instructor && schedule.instructor.email) {
+                     await sendEmail({
+                         to: schedule.instructor.email,
+                         subject: 'Bevestiging: Je hebt een les-slot geannuleerd',
+                         html: `
+                           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                             <h2 style="color: #D32F2F;">Les-slot Succesvol Geannuleerd</h2>
+                             <p>Beste ${schedule.instructor.name || 'Instructeur'},</p>
+                             <p>Je hebt zojuist succesvol je ingeplande les-slot geannuleerd.</p>
+                             <p><strong>Reden:</strong> ${redenText}</p>
+                             <p><strong>Datum & Tijd:</strong> ${dateStr} om ${schedule.time}</p>
+                             <p>Alle klanten die op dit tijdstip geboekt stonden, zijn automatisch via e-mail op de hoogte gebracht en de reserveringen zijn uit de agenda gehaald. Ook de beheerder is op de hoogte gebracht.</p>
+                             <p>Met vriendelijke groet,<br><br><strong>Systeem Windkracht-12</strong></p>
+                           </div>
+                         `
+                     });
                  }
              } catch (emailError) {
                  console.error("Fout bij verzenden annuleringsmails:", emailError);

@@ -1,8 +1,6 @@
 import "dotenv/config";
 import { prisma } from "../../lib/prisma.js";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "../../lib/mailer.js";
 
 const LESSON_LABELS = {
   PRIVE_LES:      'Privéles',
@@ -44,6 +42,20 @@ export const createReservation = async (req, res) => {
             }
         }
 
+        // Voorkom dubbele boekingen voor dezelfde persoon, zelfde les, op hetzelfde moment
+        const existingReservation = await prisma.reservation.findFirst({
+            where: {
+                userId: req.user.id,
+                lesson: lesson,
+                bookingDate: parsedDate,
+                status: { not: 'GEANNULEERD' }
+            }
+        });
+
+        if (existingReservation) {
+            return res.status(400).json({message: "Je hebt deze les al geboekt op dit tijdstip."});
+        }
+
         const reservation = await prisma.reservation.create({
             data: {
                 userId: req.user.id,
@@ -80,8 +92,7 @@ export const createReservation = async (req, res) => {
         }
 
         try {
-            await resend.emails.send({
-              from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+            await sendEmail({
               to: req.user.email,
               subject: 'Bevestiging: Je Kitesurfles bij Windkracht-12 is gereserveerd',
               html: `

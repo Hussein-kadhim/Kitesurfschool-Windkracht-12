@@ -3,10 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
 import crypto from 'crypto';
-import { Resend } from "resend";
 import { logAuthEvent } from "../lib/authLogger.js";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "../lib/mailer.js";
 
 const cookieOptions = {
     httpOnly: true,
@@ -57,36 +55,27 @@ export const register = async (req, res) => {
     });
 
     const activationLink = `http://localhost:5173/verify?token=${verificationToken}`;
-    console.log("\n==================================================");
-    console.log("ACTIVATIELINK VOOR TESTEN:", activationLink);
-    console.log("==================================================\n");
+
 
     // Welkomstmail verzenden met Resend
-    try {
-        const response = await resend.emails.send({
-            from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
-            to: email,
-            subject: 'Activeer je Windkracht-12 account',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                <h2 style="color: #005B96;">Welkom!</h2>
-                <p>Super leuk dat je een account hebt aangemaakt bij Kitesurfschool Windkracht-12.</p>
-                <p>Klik op de onderstaande link om je account te activeren en je wachtwoord in te stellen:</p>
-                <a href="${activationLink}" style="display: inline-block; padding: 10px 20px; color: #fff; background-color: #005B96; text-decoration: none; border-radius: 5px;">Account Activeren</a>
-                <p>Met sportieve groet,<br><br><strong>Team Windkracht-12</strong></p>
-              </div>
-            `
-        });
-        if (response.error) {
-            console.error("==========================================");
-            console.error("RESEND ERROR:", response.error);
-            console.error("==========================================");
-        } else {
-            console.log("Resend email succesvol verzonden. ID:", response.data?.id);
-        }
-    } catch (emailError) {
-        console.error("Fout bij verzenden van activatiemail (exception):", emailError);
+    const response = await sendEmail({
+        to: email,
+        subject: 'Activeer je Windkracht-12 account',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h2 style="color: #005B96;">Welkom!</h2>
+            <p>Super leuk dat je een account hebt aangemaakt bij Kitesurfschool Windkracht-12.</p>
+            <p>Klik op de onderstaande link om je account te activeren en je wachtwoord in te stellen:</p>
+            <a href="${activationLink}" style="display: inline-block; padding: 10px 20px; color: #fff; background-color: #005B96; text-decoration: none; border-radius: 5px;">Account Activeren</a>
+            <p>Met sportieve groet,<br><br><strong>Team Windkracht-12</strong></p>
+          </div>
+        `
+    });
+    
+    if (!response.success) {
+        console.error("Fout bij het versturen van de activatiemail:", response.error);
     }
+    // Error handling removed because sendEmail handles try-catch
 
     return res.status(201).json({ 
         message: "Registratie gestart! Controleer je e-mail om je account te activeren en je wachtwoord in te stellen.",
@@ -231,15 +220,13 @@ export const forgotPassword = async (req, res) => {
         const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || "", { expiresIn: '15m' });
         const resetLink = `http://localhost:5173/reset-password?token=${token}`;
 
-        const { data, error } = await resend.emails.send({
-            from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+        const response = await sendEmail({
             to: email,
             subject: "Wachtwoord Reset",
             html: `<p>Klik op de onderstaande link om je wachtwoord te resetten:</p><a href="${resetLink}">Wachtwoord Resetten</a>`,
         });
 
-        if (error) {
-            console.error("Resend API error:", error);
+        if (!response.success) {
             return res.status(500).json({ message: "Er is iets misgegaan bij het verzenden van de e-mail." });
         }
 

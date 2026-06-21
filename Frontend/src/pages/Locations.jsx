@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const LOCATIES = [
   { naam: "Zandvoort", beschrijving: "Perfect voor alle niveaus met brede stranden en een gezellige sfeer.", image: "/images/locaties/zandvoort.jpg" },
@@ -45,9 +46,9 @@ const Locations = () => {
         </div>
 
         <div className="mt-16 text-center">
-          <a href="/#pakketten" className="inline-block bg-black text-white font-bold uppercase tracking-wider px-8 py-4 hover:bg-gray-800 transition">
+          <Link to="/pakketten" className="inline-block bg-black text-white font-bold uppercase tracking-wider px-8 py-4 hover:bg-gray-800 transition">
             Boek nu je les op één van deze locaties
-          </a>
+          </Link>
         </div>
         
       </div>

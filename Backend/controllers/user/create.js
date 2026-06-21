@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../lib/prisma.js";
+import { sendEmail } from "../../lib/mailer.js";
 
 export const createUser = async (req, res) => {
     if (req.user.role !== 'eigenaar' && req.user.role !== 'instructeur') {
@@ -52,12 +53,9 @@ export const createUser = async (req, res) => {
 
         // Stuur welkomstmail
         try {
-            const { Resend } = await import("resend");
-            const resend = new Resend(process.env.RESEND_API_KEY);
             const loginLink = `http://localhost:5173/login`;
             
-            await resend.emails.send({
-                from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+            await sendEmail({
                 to: email,
                 subject: 'Welkom bij Windkracht-12!',
                 html: `

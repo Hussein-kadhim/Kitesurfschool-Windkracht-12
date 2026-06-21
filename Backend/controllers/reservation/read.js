@@ -13,7 +13,7 @@ export const getAllReservations = async (req, res) => {
             bookingDate: { gte: today }
         };
 
-        if (req.user.role === 'user') {
+        if (req.user.role === 'klant') {
             whereClause.userId = req.user.id;
         } else if (req.user.role === 'instructeur') {
             whereClause.instructorId = req.user.id;

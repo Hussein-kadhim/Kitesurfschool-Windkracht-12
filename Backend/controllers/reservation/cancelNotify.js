@@ -1,8 +1,6 @@
 import "dotenv/config";
 import { prisma } from "../../lib/prisma.js";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "../../lib/mailer.js";
 
 const LESSON_LABELS = {
   PRIVE_LES: 'Privéles',
@@ -74,14 +72,13 @@ export const cancelNotify = async (req, res) => {
             </div>
         `;
 
-        const response = await resend.emails.send({
-            from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+        const response = await sendEmail({
             to: reservering.user.email,
             subject,
             html,
         });
 
-        if (response.error) {
+        if (!response.success) {
             console.error("Resend error cancelNotify:", response.error);
             return res.status(500).json({ message: "Mail kon niet worden verstuurd." });
         }
