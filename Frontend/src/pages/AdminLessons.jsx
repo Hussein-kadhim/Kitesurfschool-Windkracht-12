@@ -104,6 +104,19 @@ const AdminLessons = ({ user }) => {
     }
   };
 
+  const handleAccepteerBetaling = async (resId) => {
+    try {
+      await axios.put(`/api/reservations/${resId}`, {
+        status: 'DEFINITIEF',
+        hasPaid: true
+      });
+      fetchData(); // Herlaad de agenda en reserveringen om de nieuwe status te tonen
+    } catch (err) {
+      alert(err.response?.data?.message || 'Fout bij accepteren van betaling.');
+    }
+  };
+
+
   const nu = new Date();
   nu.setHours(0,0,0,0);
   const endOfDay = new Date(nu); endOfDay.setDate(endOfDay.getDate() + 1);
@@ -235,6 +248,37 @@ const AdminLessons = ({ user }) => {
                           {s.bookedCount || 0} / {s.maxPersons || 2} personen geboekt {s.bookedCount >= (s.maxPersons || 2) ? '(Vol)' : ''}
                         </span>
                       </div>
+                      
+                      {/* Toon wie er geboekt heeft (Klantenlijst) */}
+                      {s.reservations && s.reservations.length > 0 && (
+                        <div className="mt-3 pl-3 border-l-2 border-gray-200">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Geboekt door:</p>
+                          <ul className="space-y-1.5">
+                            {s.reservations.map(res => (
+                              <li key={res.id} className="text-xs text-gray-700 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <span className="font-semibold">{res.user?.name || res.user?.email}</span>
+                                {res.duoName && <span className="text-gray-500">(+ {res.duoName})</span>}
+                                <span className="flex items-center gap-2 mt-1 sm:mt-0 ml-auto">
+                                  <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${res.status === 'DEFINITIEF' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                    {res.status}
+                                  </span>
+                                  <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${res.hasPaid ? (res.status === 'DEFINITIEF' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700') : 'bg-gray-100 text-gray-500'}`}>
+                                    {res.hasPaid ? (res.status === 'DEFINITIEF' ? 'BETAALD' : 'KLAARGEZET (CONTROLE)') : 'NIET BETAALD'}
+                                  </span>
+                                  {isEigenaar && res.status !== 'DEFINITIEF' && res.status !== 'GEANNULEERD' && (
+                                    <button 
+                                      onClick={() => handleAccepteerBetaling(res.id)}
+                                      className="ml-2 bg-green-600 hover:bg-green-700 text-white px-2 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-bold transition"
+                                    >
+                                      {res.hasPaid ? 'Verifieer & Maak Definitief' : 'Accepteer Betaling'}
+                                    </button>
+                                  )}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                     {/* De knoppen voor bewerken en annuleren tonen we nu voor BEIDE rollen */}
                     <div className="mt-2 sm:mt-0 text-left sm:text-right flex flex-col items-start sm:items-end gap-3 sm:justify-end">

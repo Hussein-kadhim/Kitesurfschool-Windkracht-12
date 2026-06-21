@@ -44,6 +44,20 @@ export const createReservation = async (req, res) => {
             }
         }
 
+        // Voorkom dubbele boekingen voor dezelfde persoon, zelfde les, op hetzelfde moment
+        const existingReservation = await prisma.reservation.findFirst({
+            where: {
+                userId: req.user.id,
+                lesson: lesson,
+                bookingDate: parsedDate,
+                status: { not: 'GEANNULEERD' }
+            }
+        });
+
+        if (existingReservation) {
+            return res.status(400).json({message: "Je hebt deze les al geboekt op dit tijdstip."});
+        }
+
         const reservation = await prisma.reservation.create({
             data: {
                 userId: req.user.id,

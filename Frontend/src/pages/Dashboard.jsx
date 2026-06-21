@@ -34,6 +34,7 @@ const Dashboard = ({ user }) => {
   const [cancelReason, setCancelReason] = useState('');
   const [wijzigReason, setWijzigReason] = useState('');
   const [cancelError, setCancelError]   = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [notifyMsg, setNotifyMsg]       = useState({});
   const [filterType, setFilterType]     = useState('ALL');
 
@@ -99,6 +100,19 @@ const Dashboard = ({ user }) => {
     }
   };
 
+  const verwijderPermanent = async (id) => {
+    setActiefId(id);
+    try {
+      await axios.delete(`/api/reservations/${id}`);
+      setReservations(prev => prev.filter(r => r.id !== id));
+      setDeleteConfirmId(null);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Verwijderen mislukt. Probeer het opnieuw.');
+    } finally {
+      setActiefId(null);
+    }
+  };
+
   // Wijzig datum
   const openWijzig = (id, huidigeDatum) => {
     setWijzigId(id);
@@ -140,7 +154,8 @@ const Dashboard = ({ user }) => {
     setActiefId(id);
     try {
       const res = await axios.put(`/api/reservations/${id}`, {
-        status: 'DEFINITIEF'
+        status: 'DEFINITIEF',
+        hasPaid: true
       });
       setReservations(prev => prev.map(r => r.id === id ? res.data : r));
     } catch (err) {
@@ -150,7 +165,46 @@ const Dashboard = ({ user }) => {
     }
   };
 
-  const filteredReservations = reservations;
+  const markeerAlsBetaaldDoorKlant = async (id) => {
+    setActiefId(id);
+    try {
+      const res = await axios.put(`/api/reservations/${id}`, {
+        hasPaid: true
+      });
+      setReservations(prev => prev.map(r => r.id === id ? res.data : r));
+      setNotifyMsg(prev => ({ ...prev, [id]: { success: 'Bedankt! We hebben doorgekregen dat je betaald hebt. De beheerder zal dit zo spoedig mogelijk controleren en definitief maken.' } }));
+      
+      // Laat de melding na 5 seconden verdwijnen
+      setTimeout(() => {
+        setNotifyMsg(prev => {
+          const newMsg = { ...prev };
+          delete newMsg[id];
+          return newMsg;
+        });
+      }, 5000);
+      
+    } catch (err) {
+      setNotifyMsg(prev => ({ ...prev, [id]: { error: err.response?.data?.message || 'Kon betaling niet doorgeven.' } }));
+      
+      // Laat de foutmelding na 5 seconden verdwijnen
+      setTimeout(() => {
+        setNotifyMsg(prev => {
+          const newMsg = { ...prev };
+          delete newMsg[id];
+          return newMsg;
+        });
+      }, 5000);
+    } finally {
+      setActiefId(null);
+    }
+  };
+
+  const filteredReservations = reservations.filter(res => {
+    if (filterType === 'ALL') return true;
+    if (filterType === 'BETAALD') return res.hasPaid || res.status === 'DEFINITIEF';
+    if (filterType === 'OPEN') return !res.hasPaid && res.status !== 'DEFINITIEF' && res.status !== 'GEANNULEERD';
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-cream py-12 px-6">
@@ -170,7 +224,21 @@ const Dashboard = ({ user }) => {
             <h2 className="text-xl font-bold font-montserrat text-gray-900">
               Mijn Reserveringen
             </h2>
-            {/* Filter knoppen (verwijderd voor nu) */}
+            {userRole === 'eigenaar' && (
+              <div className="flex bg-gray-100 p-1 rounded-sm mt-3 sm:mt-0">
+                {['ALL', 'OPEN', 'BETAALD'].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterType(type)}
+                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition ${
+                      filterType === type ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {type === 'ALL' ? 'Alles' : type === 'OPEN' ? 'Niet Betaald' : 'Betaald'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {loading && (
@@ -235,6 +303,9 @@ const Dashboard = ({ user }) => {
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${statusCfg.classes}`}>
                             {statusCfg.label}
                           </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${res.hasPaid ? (res.status === 'DEFINITIEF' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700') : 'bg-gray-100 text-gray-500'}`}>
+                            {res.hasPaid ? (res.status === 'DEFINITIEF' ? 'BETAALD' : 'KLAARGEZET (CONTROLE)') : 'NIET BETAALD'}
+                          </span>
                           <span className="text-[10px] text-gray-400 font-mono">
                             #{String(res.id).padStart(4, '0')}
                           </span>
@@ -275,6 +346,37 @@ const Dashboard = ({ user }) => {
                           {isOpen ? 'Sluiten' : 'Details'}
                         </button>
 
+                        {geannuleerd && deleteConfirmId !== res.id && (
+                          <button
+                            disabled={bezig}
+                            onClick={() => setDeleteConfirmId(res.id)}
+                            className="border border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition px-4 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+                            title="Verwijder deze reservering definitief uit je lijst"
+                          >
+                            Verwijder definitief
+                          </button>
+                        )}
+
+                        {geannuleerd && deleteConfirmId === res.id && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-red-600 font-medium mr-2">Zeker weten?</span>
+                            <button
+                              disabled={bezig}
+                              onClick={() => setDeleteConfirmId(null)}
+                              className="border border-gray-300 text-gray-700 hover:bg-gray-50 transition px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                            >
+                              Nee
+                            </button>
+                            <button
+                              disabled={bezig}
+                              onClick={() => verwijderPermanent(res.id)}
+                              className="bg-red-600 text-white hover:bg-red-700 transition px-3 py-2 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+                            >
+                              {bezig ? 'Bezig...' : 'Ja, verwijder'}
+                            </button>
+                          </div>
+                        )}
+
                         {!geannuleerd && (
                           <button
                             onClick={() => { isWijzig ? annuleerWijziging() : openWijzig(res.id, res.bookingDate); sluitCancelModal(); }}
@@ -297,6 +399,18 @@ const Dashboard = ({ user }) => {
                           </button>
                         )}
 
+                        {/* Knoppen voor klant */}
+                        {!geannuleerd && userRole === 'klant' && !res.hasPaid && (
+                          <button
+                            disabled={bezig}
+                            onClick={() => markeerAlsBetaaldDoorKlant(res.id)}
+                            className="bg-primary text-white hover:bg-blue-600 transition px-4 py-2 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+                            title="Geef aan dat je het bedrag hebt overgemaakt"
+                          >
+                            {bezig ? 'Bezig...' : 'Ik heb betaald'}
+                          </button>
+                        )}
+
                         {/* Knoppen voor instructeur & eigenaar */}
                         {!geannuleerd && (userRole === 'eigenaar' || userRole === 'admin' || userRole === 'instructeur') && (
                           <>
@@ -305,9 +419,9 @@ const Dashboard = ({ user }) => {
                                 disabled={bezig}
                                 onClick={() => accepteerLes(res.id)}
                                 className="bg-green-600 text-white hover:bg-green-700 transition px-4 py-2 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
-                                title="Accepteer de les (maak definitief)"
+                                title="Accepteer betaling en maak de les definitief"
                               >
-                                {bezig ? 'Bezig...' : 'Accepteer Les'}
+                                {bezig ? 'Bezig...' : (res.hasPaid ? 'Verifieer & Maak Definitief' : 'Accepteer Betaling')}
                               </button>
                             )}
                             <button

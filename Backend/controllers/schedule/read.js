@@ -29,13 +29,21 @@ export const getSchedules = async (req, res) => {
             return res.status(403).json({ message: "Geen toegang" });
         }
 
-        // Haal reserveringen op om de capaciteit te berekenen
+        // Haal reserveringen op om de capaciteit te berekenen en klantinfo te tonen
         const reservations = await prisma.reservation.findMany({
             where: { status: { not: 'GEANNULEERD' } },
-            select: { bookingDate: true, instructorId: true, duoName: true }
+            select: { 
+                id: true,
+                bookingDate: true, 
+                instructorId: true, 
+                duoName: true,
+                status: true,
+                hasPaid: true,
+                user: { select: { name: true, email: true } }
+            }
         });
 
-        // Voeg bookedCount toe aan elke schedule
+        // Voeg bookedCount en reservations toe aan elke schedule
         const schedulesWithCount = schedules.map(schedule => {
             // Zoek reserveringen voor dezelfde datum en instructeur
             const relatedReservations = reservations.filter(res => {
@@ -51,7 +59,8 @@ export const getSchedules = async (req, res) => {
 
             return {
                 ...schedule,
-                bookedCount
+                bookedCount,
+                reservations: req.user.role === 'eigenaar' || req.user.role === 'instructeur' ? relatedReservations : []
             };
         });
 

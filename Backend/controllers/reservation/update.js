@@ -228,7 +228,33 @@ export const updateReservation = async (req, res) => {
                 });
             } catch (e) { console.error("Fout klantmail DEFINITIEF:", e); }
 
-            // Mail 2: Geen mail meer naar de instructeur om spam te voorkomen
+            // Mail 2: Bevestiging naar de instructeur
+            if (bestaand.instructor?.email) {
+                const instructorHtml = `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                      <h2 style="color: #005B96;">Nieuwe Definitieve Les</h2>
+                      <p>Beste ${bestaand.instructor.name},</p>
+                      <p>Klant <strong>${bestaand.user.name}</strong> heeft succesvol betaald. De reservering is nu definitief!</p>
+                      <div style="background-color: #f5f5f0; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <ul style="list-style: none; padding-left: 0;">
+                           <li style="margin-bottom: 10px;"><strong>Klant:</strong> ${bestaand.user.name} (${bestaand.user.email})</li>
+                           <li style="margin-bottom: 10px;"><strong>Les:</strong> ${lesNaam}</li>
+                           <li style="margin-bottom: 10px;"><strong>Datum:</strong> ${bevestigingsDatum}</li>
+                        </ul>
+                      </div>
+                      <p>Met vriendelijke groet,<br><br><strong>Systeem Windkracht-12</strong></p>
+                    </div>
+                `;
+
+                try {
+                    await resend.emails.send({
+                        from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+                        to: bestaand.instructor.email,
+                        subject: 'Nieuwe Definitieve Reservering - Windkracht-12',
+                        html: instructorHtml,
+                    });
+                } catch (e) { console.error("Fout instructeurmail DEFINITIEF:", e); }
+            }
         }
 
         res.json(reservation);
