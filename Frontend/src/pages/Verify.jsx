@@ -69,9 +69,6 @@ function Verify({ setUser }) {
       <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center font-montserrat">Account Activeren</h2>
         
-        {error && <div className="text-red-500 mb-4 text-center text-sm font-medium">{error}</div>}
-        {successMsg && <div className="text-green-500 mb-4 text-center text-sm font-medium">{successMsg} Je wordt doorgestuurd...</div>}
-        
         {token ? (
           <form onSubmit={handleSubmit} noValidate>
             <div className="mb-4">
@@ -118,6 +115,19 @@ function Verify({ setUser }) {
               />
               {fieldErrors.confirmPassword && <p className="text-red-500 text-xs mt-1 text-left">{fieldErrors.confirmPassword}</p>}
             </div>
+
+            {error && (
+                <div className='flex items-center justify-center gap-2 text-red-500 mb-4 text-sm font-medium'>
+                    <i className="fa-solid fa-circle-exclamation" />
+                    <span className="text-center">{error}</span>
+                </div>
+            )}
+            {successMsg && (
+                <div className='flex items-center justify-center gap-2 text-green-500 mb-4 text-sm font-medium'>
+                    <i className="fa-solid fa-circle-check" />
+                    <span className="text-center">{successMsg} Je wordt doorgestuurd...</span>
+                </div>
+            )}
 
             <button 
               type="submit"

@@ -6,7 +6,7 @@ export const updateUser = async (req, res) => {
     }
     try {
         const { id } = req.params;
-        const { name, email, role, address, city, dateOfBirth, phone, bsn } = req.body;
+        const { name, email, role, address, city, dateOfBirth, phone, bsn, isBlocked } = req.body;
 
         // Alleen eigenaar mag de rol wijzigen
         const finalRole = req.user.role === 'instructeur' ? undefined : role;
@@ -14,6 +14,16 @@ export const updateUser = async (req, res) => {
         // Determine BSN: only for non-klant roles
         const resolvedRole = finalRole ?? (await prisma.user.findUnique({ where: { id: parseInt(id) }, select: { role: true } }))?.role;
         const finalBsn = resolvedRole === 'klant' ? null : (bsn || null);
+
+        // Alleen eigenaar mag blokkeren/deblokkeren, en een eigenaar kan niet geblokkeerd worden
+        let finalIsBlocked = undefined;
+        if (req.user.role === 'eigenaar' && isBlocked !== undefined) {
+            if (resolvedRole === 'eigenaar') {
+                finalIsBlocked = false; // Force false for eigenaar
+            } else {
+                finalIsBlocked = isBlocked;
+            }
+        }
 
         const updatedUser = await prisma.user.update({
             where: { id: parseInt(id) },
@@ -26,6 +36,7 @@ export const updateUser = async (req, res) => {
                 dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
                 phone:       phone       ?? null,
                 bsn:         finalBsn,
+                isBlocked:   finalIsBlocked,
             },
             select: {
                 id: true,
@@ -38,6 +49,7 @@ export const updateUser = async (req, res) => {
                 phone: true,
                 bsn: true,
                 isVerified: true,
+                isBlocked: true,
             }
         });
 

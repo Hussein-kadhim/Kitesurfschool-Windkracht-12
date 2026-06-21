@@ -46,9 +46,6 @@ const handleSubmit = async (e) => {
     <div className="flex items-center justify-center h-screen">
 <form className='bg-white p-8 rounded shadow-md w-full max-w-sm' onSubmit={handleSubmit} noValidate>
     <h2 className='text-2xl font-bold mb-6 text-center font-montserrat'>Registreer</h2>
-    {error && <div className='text-red-500 mb-4 text-center text-sm font-medium'>{error}</div>}
-    {successMsg && <div className='text-green-500 mb-4 text-center text-sm font-medium'>{successMsg}</div>}
-    
     <div className="mb-6">
         <input 
             type="email" 
@@ -60,7 +57,19 @@ const handleSubmit = async (e) => {
         {fieldErrors.email && <p className="text-red-500 text-xs mt-1 text-left">{fieldErrors.email}</p>}
     </div>
 
-    <button className='bg-primary text-white p-2 w-full font-bold hover:opacity-90 transition'>Registreer</button>
+    {error && (
+        <div className='flex items-center justify-center gap-2 text-red-500 mb-4 text-sm font-medium'>
+            <i className="fa-solid fa-circle-exclamation" />
+            <span className="text-center">{error}</span>
+        </div>
+    )}
+    {successMsg && (
+        <div className='flex items-center justify-center gap-2 text-green-500 mb-4 text-sm font-medium'>
+            <i className="fa-solid fa-circle-check" />
+            <span className="text-center">{successMsg}</span>
+        </div>
+    )}
+    <button className='bg-primary text-white p-2 w-full rounded font-bold hover:opacity-90 transition'>Registreer</button>
 </form>
 </div>
   )

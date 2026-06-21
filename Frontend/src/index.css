@@ -15,7 +15,7 @@ body {
   font-family: 'Lexend', sans-serif;
 }
 
-/* ── react-calendar overrides ─────────────────────────── */
+/* react-calendar overrides */
 .reservation-calendar .react-calendar {
   width: 100%;
   border: none;

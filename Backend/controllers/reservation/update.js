@@ -270,6 +270,13 @@ export const updateReservation = async (req, res) => {
                     </ul>
                   </div>
                   <p>We nemen binnenkort contact met je op als er bijzonderheden zijn met betrekking tot de wind- en weersomstandigheden.</p>
+                  
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="http://localhost:5173/bevestiging/${bestaand.id}" style="background-color: #005B96; color: white; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">
+                      Bekijk je reservering
+                    </a>
+                  </div>
+
                   <p>Met vriendelijke groet,<br><br><strong>Team Windkracht-12</strong></p>
                 </div>
             `;

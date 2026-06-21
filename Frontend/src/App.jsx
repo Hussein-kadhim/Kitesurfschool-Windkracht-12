@@ -90,8 +90,7 @@ function App() {
     <Route path="/success" element={user ? <Success /> : <Navigate to="/login" />} />
     <Route path="/profile" element={user ? <Profile user={user} setUser={updateUser} /> : <Navigate to="/login" />} />
     <Route path="/dashboard" element={
-      user?.role === 'klant' ? <Dashboard user={user} setUser={updateUser} /> 
-      : user?.role === 'eigenaar' ? <Navigate to="/admin/lessons" />
+      (user?.role === 'klant' || user?.role === 'eigenaar') ? <Dashboard user={user} setUser={updateUser} /> 
       : user?.role === 'instructeur' ? <Navigate to="/admin/lessons" />
       : <Navigate to="/login" />
     } />

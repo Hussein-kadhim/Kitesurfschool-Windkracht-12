@@ -12,7 +12,8 @@ import {
     createUser,
     updateUser,
     deleteUser,
-    verifyEmail
+    verifyEmail,
+    changePassword
 } from "../controllers/auth.js";
 
 const router = express.Router();
@@ -40,6 +41,7 @@ router.post("/reset-password", resetPassword);
 
 // Profile (Self)
 router.put("/profile", protect, updateProfile);
+router.put("/password", protect, changePassword);
 
 // User Administration
 router.get("/users", protect, getAllUsers);

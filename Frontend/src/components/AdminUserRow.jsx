@@ -41,12 +41,14 @@ const AdminUserRow = ({
   editRole,
   editLoading,
   editServerError,
+  handlePromote,
+  handleBlock,
 }) => {
   const roleCfg = ROLE_CONFIG[user.role] || ROLE_CONFIG.klant;
   const isSelf  = currentUser?.id === user.id;
 
   return (
-    <div className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+    <div className={`border border-gray-200 shadow-sm transition-shadow ${user.isBlocked ? 'bg-red-50/30' : 'bg-white hover:shadow-md'}`}>
       {/* Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
         <div className="flex items-center gap-4">
@@ -57,6 +59,7 @@ const AdminUserRow = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-gray-900 text-sm">{user.name || <span className="italic text-gray-400">Geen naam</span>}</span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${roleCfg.classes}`}>{roleCfg.label}</span>
+              {user.isBlocked && <span className="text-[10px] font-bold px-2 py-0.5 bg-red-100 text-red-800 border border-red-300 rounded-sm uppercase tracking-wider">Geblokkeerd</span>}
               {isSelf && <span className="text-[10px] font-bold px-2 py-0.5 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-sm uppercase tracking-wider">Jij</span>}
             </div>
             <p className="text-xs text-gray-500">{user.email}</p>
@@ -66,7 +69,22 @@ const AdminUserRow = ({
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          <button onClick={() => setExpandedId(isExpanded ? null : user.id)}
+          {isEigenaar && !isSelf && user.role === 'klant' && (
+            <button onClick={() => handlePromote(user.id, user.role)}
+              className="border border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400 transition px-3 py-1.5 text-xs font-semibold uppercase tracking-wider">
+              Promoveer
+            </button>
+          )}
+          {isEigenaar && !isSelf && user.role !== 'eigenaar' && (
+            <button onClick={() => handleBlock(user.id, user.isBlocked)}
+              className={`border transition px-3 py-1.5 text-xs font-semibold uppercase tracking-wider ${user.isBlocked ? 'border-orange-300 text-orange-700 hover:bg-orange-50' : 'border-gray-300 text-gray-700 hover:border-black hover:text-black'}`}>
+              {user.isBlocked ? 'Deblokkeer' : 'Blokkeer'}
+            </button>
+          )}
+          <button onClick={() => {
+              setExpandedId(isExpanded ? null : user.id);
+              if (!isExpanded) { setEditId(null); setDeleteId(null); }
+            }}
             className="border border-gray-300 text-gray-700 hover:border-black hover:text-black transition px-3 py-1.5 text-xs font-semibold uppercase tracking-wider">
             {isExpanded ? 'Sluiten' : 'Details'}
           </button>
@@ -75,7 +93,10 @@ const AdminUserRow = ({
             {isEditing ? 'Annuleer' : 'Bewerken'}
           </button>
           {((isEigenaar && !isSelf && user.role !== 'eigenaar') || (currentUser?.role === 'instructeur' && user.role === 'klant')) && (
-            <button onClick={() => setDeleteId(isDeleting ? null : user.id)}
+            <button onClick={() => {
+                setDeleteId(isDeleting ? null : user.id);
+                if (!isDeleting) { setEditId(null); setExpandedId(null); }
+              }}
               className={`border transition px-3 py-1.5 text-xs font-semibold uppercase tracking-wider ${isDeleting ? 'border-red-500 bg-red-50 text-red-700' : 'border-red-300 text-red-600 hover:bg-red-50'}`}>
               {isDeleting ? 'Annuleer' : 'Verwijder'}
             </button>
