@@ -217,8 +217,13 @@ const Navbar = ({user, setUser}) => {
           {user?.role === 'eigenaar' && (
             <div>
               <button
-                className="flex items-center justify-between w-full py-2 hover:text-primary transition"
-                onClick={() => setMobileAdminOpen(!mobileAdminOpen)}
+                className="flex items-center justify-between w-full py-2 hover:text-primary transition font-semibold"
+                onClick={() => {
+                  setMobileAdminOpen(!mobileAdminOpen);
+                  if (!mobileAdminOpen) {
+                    setMobileInstructeurOpen(false);
+                  }
+                }}
               >
                 Admin
                 <i className={`fa-solid fa-chevron-down text-xs transition-transform ${mobileAdminOpen ? 'rotate-180' : ''}`}></i>
@@ -236,8 +241,13 @@ const Navbar = ({user, setUser}) => {
           {(user?.role === 'eigenaar' || user?.role === 'instructeur') && (
             <div>
               <button
-                className="flex items-center justify-between w-full py-2 hover:text-primary transition"
-                onClick={() => setMobileInstructeurOpen(!mobileInstructeurOpen)}
+                className="flex items-center justify-between w-full py-2 hover:text-primary transition font-semibold"
+                onClick={() => {
+                  setMobileInstructeurOpen(!mobileInstructeurOpen);
+                  if (!mobileInstructeurOpen) {
+                    setMobileAdminOpen(false);
+                  }
+                }}
               >
                 Instructeur
                 <i className={`fa-solid fa-chevron-down text-xs transition-transform ${mobileInstructeurOpen ? 'rotate-180' : ''}`}></i>

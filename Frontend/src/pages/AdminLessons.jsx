@@ -209,27 +209,27 @@ const AdminLessons = ({ user }) => {
         )}
 
         <div className="bg-white border border-gray-200 shadow-sm mt-8">
-          <div className="border-b border-gray-200 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="border-b border-gray-200 p-4 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <h2 className="text-base font-bold font-montserrat text-gray-900 uppercase tracking-wider">
               Ingeplande Lessen
             </h2>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               {isEigenaar && (
                 <select 
                   value={filterInstructorId} 
                   onChange={(e) => setFilterInstructorId(e.target.value)}
-                  className="border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white focus:outline-none"
+                  className="border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white focus:outline-none w-full sm:w-auto"
                 >
                   <option value="ALL">Alle Instructeurs</option>
                   {instructors.map(i => <option key={i.id} value={i.id}>{i.name || i.email}</option>)}
                 </select>
               )}
-              <div className="flex bg-gray-100 p-1 rounded-sm">
+              <div className="flex bg-gray-100 p-1 rounded-sm w-full sm:w-auto justify-between sm:justify-start">
                 {['ALL', 'DAG', 'WEEK', 'MAAND'].map(type => (
                   <button
                     key={type}
                     onClick={() => setViewType(type)}
-                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wider transition ${viewType === type ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`flex-1 sm:flex-none text-center px-3 py-1 text-xs font-bold uppercase tracking-wider transition ${viewType === type ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'}`}
                   >
                     {type === 'ALL' ? 'Alles' : type}
                   </button>
@@ -263,10 +263,10 @@ const AdminLessons = ({ user }) => {
                           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Geboekt door:</p>
                           <ul className="space-y-1.5">
                             {s.reservations.map(res => (
-                              <li key={res.id} className="text-xs text-gray-700 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                              <li key={res.id} className="text-xs text-gray-700 flex flex-col sm:flex-row sm:items-start sm:items-center gap-1.5 sm:gap-2">
                                 <span className="font-semibold">{res.user?.name || res.user?.email}</span>
                                 {res.duoName && <span className="text-gray-500">(+ {res.duoName})</span>}
-                                <span className="flex items-center gap-2 mt-1 sm:mt-0 ml-auto">
+                                <span className="flex flex-wrap items-center gap-1.5 mt-2 sm:mt-0 sm:ml-auto">
                                   <span className={`px-1.5 py-0.5 text-[9px] rounded-sm uppercase tracking-widest font-bold ${res.status === 'DEFINITIEF' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                                     {res.status}
                                   </span>
@@ -276,7 +276,7 @@ const AdminLessons = ({ user }) => {
                                   {isEigenaar && res.status !== 'DEFINITIEF' && res.status !== 'GEANNULEERD' && (
                                     <button 
                                       onClick={() => handleAccepteerBetaling(res.id)}
-                                      className="ml-2 bg-green-600 hover:bg-green-700 text-white px-2 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-bold transition"
+                                      className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded-sm text-[9px] uppercase tracking-wider font-bold transition"
                                     >
                                       {res.hasPaid ? 'Verifieer & Maak Definitief' : 'Accepteer Betaling'}
                                     </button>
