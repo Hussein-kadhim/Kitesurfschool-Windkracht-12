@@ -222,10 +222,10 @@ const AdminUsers = ({ user }) => {
               className="w-full border border-gray-300 pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-black" />
           </div>
           {isEigenaar && (
-            <div className="flex border border-gray-200 divide-x divide-gray-200 shrink-0">
+            <div className="flex flex-col md:flex-row border border-gray-200 divide-y md:divide-y-0 md:divide-x divide-gray-200 shrink-0">
               {['alle', 'klant', 'instructeur', 'eigenaar'].map((r) => (
                 <button key={r} onClick={() => setRoleFilter(r)}
-                  className={`px-4 py-2 text-xs font-semibold uppercase tracking-wide transition ${roleFilter === r ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                  className={`w-full md:w-auto px-4 py-2.5 text-xs font-semibold uppercase tracking-wide transition text-center ${roleFilter === r ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
                   {r === 'alle' ? 'Alle' : ROLE_CONFIG[r]?.label}
                   <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${roleFilter === r ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
                     {roleCounts[r]}
