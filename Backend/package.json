@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "npx prisma generate && nodemon server.js",
-    "seed": "node prisma/seed.js"
+    "seed": "node models/seed.js"
   },
   "keywords": [],
   "author": "",
